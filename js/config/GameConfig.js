@@ -26,8 +26,8 @@ export const GAME_CONFIG = {
 
     // Player settings
     PLAYER: {
-        SPEED: 150,          // Pixels per second
-        RADIUS: 16,          // Collision radius
+        SPEED: 140,          // Pixels per second
+        RADIUS: 14,          // Collision radius
         MAX_HEALTH: 100,
         INVULNERABLE_DURATION: 1.0  // Seconds of invulnerability after damage
     },

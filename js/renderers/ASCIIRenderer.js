@@ -58,37 +58,51 @@ export class ASCIIRenderer extends IRenderer {
      * @param {string} type - Enemy type
      * @param {number} healthPercent - Health percentage (0-1)
      */
-    drawEnemy(ctx, x, y, radius, type, healthPercent) {
+    drawEnemy(ctx, x, y, radius, type, healthPercent, effectOptions = {}) {
         ctx.save();
 
         // Select character and appearance based on enemy type
-        let char, font, color;
+        let char, baseFont, color;
+        let baseFontSize;
 
         switch (type) {
             case 'tank':
                 char = GAME_CONFIG.ASCII.ENEMY_TANK;
-                font = GAME_CONFIG.FONTS.ENEMY_TANK;
+                baseFontSize = 20;
                 color = GAME_CONFIG.COLORS.ENEMY_TANK;
                 break;
             case 'fast':
                 char = GAME_CONFIG.ASCII.ENEMY_FAST;
-                font = GAME_CONFIG.FONTS.ENEMY_FAST;
+                baseFontSize = 14;
                 color = GAME_CONFIG.COLORS.ENEMY_FAST;
                 break;
             case 'basic':
             default:
                 char = GAME_CONFIG.ASCII.ENEMY_BASIC;
-                font = GAME_CONFIG.FONTS.ENEMY;
+                baseFontSize = 16;
                 color = GAME_CONFIG.COLORS.ENEMY_BASIC;
                 break;
         }
 
-        ctx.font = font;
+        // Apply scale effect
+        const scale = effectOptions.scale || 1;
+        const scaledFontSize = Math.round(baseFontSize * scale);
+
+        ctx.font = `${scaledFontSize}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = color;
 
         ctx.fillText(char, x, y);
+
+        // Apply flash effect overlay
+        const flashAlpha = effectOptions.flashAlpha || 0;
+        if (flashAlpha > 0) {
+            ctx.globalAlpha = flashAlpha;
+            ctx.fillStyle = effectOptions.flashColor || '#FFFFFF';
+            ctx.fillText(char, x, y);
+            ctx.globalAlpha = 1;
+        }
 
         ctx.restore();
     }
@@ -270,20 +284,26 @@ export class ASCIIRenderer extends IRenderer {
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {number} damage - Damage value
-     * @param {number} progress - Animation progress
+     * @param {number} value - Damage value
+     * @param {string} color - Text color
+     * @param {number} opacity - Text opacity (0-1)
+     * @param {number} scale - Text scale
      */
-    drawDamageNumber(ctx, x, y, damage, progress) {
+    drawDamageNumber(ctx, x, y, value, color = '#ffffff', opacity = 1, scale = 1) {
         ctx.save();
 
-        ctx.font = '14px monospace';
+        const fontSize = Math.floor(14 * scale);
+        ctx.font = `bold ${fontSize}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        const alpha = 1 - progress;
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        // Convert hex color to rgba with opacity
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
 
-        ctx.fillText(`-${damage}`, x, y - progress * 30);
+        ctx.fillText(`${value}`, x, y);
 
         ctx.restore();
     }

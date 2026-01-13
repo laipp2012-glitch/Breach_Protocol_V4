@@ -36,10 +36,10 @@ export class Pickup {
         this.radius = value > 5 ? 10 : 6;
 
         /** @type {number} Magnetic pull radius */
-        this.magnetRadius = 80;
+        this.magnetRadius = 50;
 
         /** @type {number} Speed when being pulled */
-        this.magnetSpeed = 300;
+        this.magnetSpeed = 120;
 
         /** @type {boolean} Whether pickup is active */
         this.alive = true;

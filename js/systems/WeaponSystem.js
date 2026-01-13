@@ -1,11 +1,12 @@
 /**
  * Weapon System - Manages weapon firing and projectile creation
- * Handles cooldowns, targeting, and auto-firing
+ * Handles cooldowns, targeting, auto-firing, and aura weapons
  * @module systems/WeaponSystem
  */
 
 import { Projectile } from '../entities/Projectile.js';
 import { getWeaponStats } from '../config/WeaponConfig.js';
+import { Vector2D } from '../utils/Vector2D.js';
 
 /**
  * Manages weapon behavior and projectile creation
@@ -17,6 +18,9 @@ export class WeaponSystem {
     constructor() {
         /** @type {number} Maximum projectiles allowed on screen */
         this.maxProjectiles = 300;
+
+        /** @type {Array} Enemies hit by aura this tick (to prevent multi-hit) */
+        this.auraHitEnemies = new Set();
     }
 
     /**
@@ -25,10 +29,11 @@ export class WeaponSystem {
      * @param {Object} player - The player entity
      * @param {Array} enemies - Array of enemy entities
      * @param {Array} projectiles - Array of active projectiles
-     * @returns {Array} Array of new projectiles spawned this frame
+     * @returns {Object} Result containing new projectiles and aura hits
      */
     update(deltaTime, player, enemies, projectiles) {
         const newProjectiles = [];
+        const auraHits = [];
 
         // Update each weapon the player has
         for (const weapon of player.weapons) {
@@ -40,26 +45,69 @@ export class WeaponSystem {
                 // Get effective stats (includes level bonuses)
                 const stats = getWeaponStats(weapon);
 
-                // Find nearest enemy
-                const target = this.findNearestEnemy(player.position, enemies);
-
-                if (target) {
-                    // Calculate direction to target
-                    const direction = target.position.subtract(player.position).normalize();
-
-                    // Fire projectiles
-                    const projectilesFired = this.fireWeapon(
-                        player.position,
-                        direction,
-                        weapon,
-                        stats,
-                        projectiles.length + newProjectiles.length
-                    );
-
-                    newProjectiles.push(...projectilesFired);
+                // Handle different weapon types
+                if (weapon.id === 'garlic') {
+                    // Garlic is an aura weapon - damage enemies in range
+                    const hits = this.processAuraWeapon(player, enemies, weapon, stats);
+                    auraHits.push(...hits);
 
                     // Reset cooldown
                     weapon.cooldown = 1 / stats.attackSpeed;
+                } else if (weapon.id === 'knife') {
+                    // Knife: movement direction when moving, nearest enemy when still
+                    let direction = null;
+
+                    // Check if player is moving (velocity has magnitude)
+                    const velMag = player.velocity ?
+                        Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) : 0;
+
+                    if (velMag > 0.1) {
+                        // Player is MOVING - fire in movement direction
+                        direction = new Vector2D(
+                            player.velocity.x / velMag,
+                            player.velocity.y / velMag
+                        );
+                    } else {
+                        // Player is STILL - auto-target nearest enemy (like Magic Wand)
+                        const target = this.findNearestEnemy(player.position, enemies);
+                        if (target) {
+                            direction = target.position.subtract(player.position).normalize();
+                        }
+                    }
+
+                    // Only fire if we have a valid direction
+                    if (direction && (direction.x !== 0 || direction.y !== 0)) {
+                        const projectilesFired = this.fireWeapon(
+                            player.position,
+                            direction,
+                            weapon,
+                            stats,
+                            projectiles.length + newProjectiles.length
+                        );
+
+                        newProjectiles.push(...projectilesFired);
+                        weapon.cooldown = 1 / stats.attackSpeed;
+                    }
+                } else {
+                    // Standard projectile weapon (Magic Wand) - target nearest enemy
+                    const target = this.findNearestEnemy(player.position, enemies);
+
+                    if (target) {
+                        const direction = target.position.subtract(player.position).normalize();
+
+                        const projectilesFired = this.fireWeapon(
+                            player.position,
+                            direction,
+                            weapon,
+                            stats,
+                            projectiles.length + newProjectiles.length
+                        );
+
+                        newProjectiles.push(...projectilesFired);
+
+                        // Reset cooldown
+                        weapon.cooldown = 1 / stats.attackSpeed;
+                    }
                 }
             }
         }
@@ -69,7 +117,69 @@ export class WeaponSystem {
             projectile.update(deltaTime);
         }
 
-        return newProjectiles;
+        return { newProjectiles, auraHits };
+    }
+
+    /**
+     * Processes an aura weapon like Garlic
+     * @param {Object} player - Player entity
+     * @param {Array} enemies - Enemy array
+     * @param {Object} weapon - Weapon instance
+     * @param {Object} stats - Calculated weapon stats
+     * @returns {Array} Enemies hit by the aura
+     */
+    processAuraWeapon(player, enemies, weapon, stats) {
+        const hits = [];
+        const rangeSq = stats.range * stats.range;
+
+        for (const enemy of enemies) {
+            if (!enemy.alive) continue;
+
+            // Check if enemy is within aura range
+            const dx = enemy.position.x - player.position.x;
+            const dy = enemy.position.y - player.position.y;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq <= rangeSq) {
+                // Apply damage with player's damage multiplier
+                const finalDamage = stats.damage * (player.damageMultiplier || 1);
+                const killed = enemy.takeDamage(finalDamage);
+
+                hits.push({
+                    enemy,
+                    damage: finalDamage,
+                    killed,
+                    weaponId: weapon.id
+                });
+            }
+        }
+
+        return hits;
+    }
+
+    /**
+     * Gets the garlic aura info for rendering
+     * @param {Object} player - Player entity
+     * @returns {Object|null} Aura info or null if no garlic
+     */
+    getGarlicAura(player) {
+        const garlicWeapon = player.weapons.find(w => w.id === 'garlic');
+        if (!garlicWeapon) return null;
+
+        const stats = getWeaponStats(garlicWeapon);
+
+        // Calculate pulse effect based on cooldown
+        const cooldownRatio = garlicWeapon.cooldown / (1 / stats.attackSpeed);
+        const pulseScale = 1 + (1 - cooldownRatio) * 0.1; // 10% pulse on damage tick
+
+        return {
+            x: player.position.x,
+            y: player.position.y,
+            radius: stats.range * pulseScale,
+            baseRadius: stats.range,
+            level: garlicWeapon.level,
+            damage: stats.damage
+        };
     }
 
     /**
@@ -112,18 +222,13 @@ export class WeaponSystem {
                 const cos = Math.cos(angleOffset);
                 const sin = Math.sin(angleOffset);
 
-                finalDirection = {
-                    x: direction.x * cos - direction.y * sin,
-                    y: direction.x * sin + direction.y * cos,
-                    multiply: (s) => ({ x: finalDirection.x * s, y: finalDirection.y * s }),
-                    normalize: () => finalDirection
-                };
+                const newX = direction.x * cos - direction.y * sin;
+                const newY = direction.x * sin + direction.y * cos;
+                const mag = Math.sqrt(newX * newX + newY * newY);
 
-                // Create proper Vector2D-like object
-                const mag = Math.sqrt(finalDirection.x ** 2 + finalDirection.y ** 2);
                 finalDirection = {
-                    x: finalDirection.x / mag,
-                    y: finalDirection.y / mag,
+                    x: newX / mag,
+                    y: newY / mag,
                     multiply: function (s) {
                         return { x: this.x * s, y: this.y * s, magnitude: () => s };
                     }

@@ -58,6 +58,22 @@ export class Enemy {
         /** @type {number} Damage flash timer */
         this.damageFlashTimer = 0;
 
+        // Effect properties (for juice system)
+        /** @type {number} Scale multiplier for effects */
+        this.scale = 1;
+        /** @type {number} Flash overlay opacity */
+        this.flashAlpha = 0;
+        /** @type {string|null} Flash overlay color */
+        this.flashColor = null;
+        /** @type {number} Shake X offset */
+        this.shakeOffsetX = 0;
+        /** @type {number} Shake Y offset */
+        this.shakeOffsetY = 0;
+        /** @type {number} Knockback X velocity */
+        this.knockbackVelocityX = 0;
+        /** @type {number} Knockback Y velocity */
+        this.knockbackVelocityY = 0;
+
         // Add slight speed variation for visual interest
         this.speed *= 0.9 + Math.random() * 0.2; // ±10% speed variation
     }
@@ -85,6 +101,12 @@ export class Enemy {
             this.velocity = new Vector2D(0, 0);
         }
 
+        // Apply knockback velocity (from effects)
+        if (this.knockbackVelocityX !== 0 || this.knockbackVelocityY !== 0) {
+            this.position.x += this.knockbackVelocityX * deltaTime;
+            this.position.y += this.knockbackVelocityY * deltaTime;
+        }
+
         // Update damage flash timer
         if (this.damaged) {
             this.damageFlashTimer -= deltaTime;
@@ -108,6 +130,7 @@ export class Enemy {
         this.health -= amount;
         this.damaged = true;
         this.damageFlashTimer = 0.1; // 100ms flash
+        this.lastDamageTaken = amount; // Track for damage numbers
 
         if (this.health <= 0) {
             this.health = 0;

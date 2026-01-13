@@ -30,8 +30,8 @@ export const WEAPON_TYPES = {
         id: 'magic_wand',
         name: 'Magic Wand',
         description: 'Fires magic projectiles at the nearest enemy',
-        damage: 10,
-        attackSpeed: 1.5,        // 1.5 attacks per second
+        damage: 5,
+        attackSpeed: 1,        // 1.5 attacks per second
         projectileSpeed: 300,    // Pixels per second
         projectileCount: 1,      // Projectiles per attack
         piercing: 0,             // Hits 1 enemy only (piercing + 1)
@@ -46,15 +46,14 @@ export const WEAPON_TYPES = {
     },
 
     /**
-     * Knife - Fast projectiles in the direction player is facing
-     * (For future implementation)
+     * Knife - Fast projectiles in the direction player is moving
      */
     KNIFE: {
         id: 'knife',
         name: 'Knife',
         description: 'Throws fast knives in the direction you are moving',
         damage: 8,
-        attackSpeed: 2.5,
+        attackSpeed: 1.5,
         projectileSpeed: 500,
         projectileCount: 1,
         piercing: 1,             // Pierces through 2 enemies
@@ -69,7 +68,6 @@ export const WEAPON_TYPES = {
 
     /**
      * Garlic - Damage aura around player
-     * (For future implementation)
      */
     GARLIC: {
         id: 'garlic',

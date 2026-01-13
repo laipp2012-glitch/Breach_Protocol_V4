@@ -7,16 +7,20 @@
 import { GameLoop } from './core/GameLoop.js';
 import { Camera } from './core/Camera.js';
 import { Player } from './entities/Player.js';
+import { DamageNumber } from './entities/DamageNumber.js';
 import { InputSystem } from './systems/InputSystem.js';
 import { RenderSystem } from './systems/RenderSystem.js';
 import { SpawnSystem } from './systems/SpawnSystem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
 import { WeaponSystem } from './systems/WeaponSystem.js';
 import { ExperienceSystem } from './systems/ExperienceSystem.js';
+import { EffectSystem } from './systems/EffectSystem.js';
+import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ASCIIRenderer } from './renderers/ASCIIRenderer.js';
 import { LevelUpUI } from './ui/LevelUpUI.js';
 import { GAME_CONFIG } from './config/GameConfig.js';
 import { createWeapon } from './config/WeaponConfig.js';
+import { EFFECT_PRESETS } from './config/EffectConfig.js';
 
 /**
  * Main game class that coordinates all systems
@@ -68,7 +72,7 @@ class Game {
         /** @type {WeaponSystem} */
         this.weaponSystem = new WeaponSystem();
 
-        // Give player starting weapon (Magic Wand)
+        // Give player starting weapon (Magic Wand only - other weapons via level up)
         const startingWeapon = createWeapon('magic_wand');
         if (startingWeapon) {
             this.player.weapons.push(startingWeapon);
@@ -76,6 +80,12 @@ class Game {
 
         /** @type {ExperienceSystem} */
         this.experienceSystem = new ExperienceSystem(this.handleLevelUp.bind(this));
+
+        /** @type {EffectSystem} */
+        this.effectSystem = new EffectSystem();
+
+        /** @type {ParticleSystem} */
+        this.particleSystem = new ParticleSystem(500);
 
         /** @type {LevelUpUI} */
         this.levelUpUI = new LevelUpUI(this.canvas);
@@ -92,7 +102,8 @@ class Game {
             enemies: [],
             projectiles: [],
             pickups: [],
-            particles: []
+            particles: [],
+            damageNumbers: []
         };
 
         // Create game loop with update callback
@@ -147,22 +158,68 @@ class Game {
         }
 
         // 5. Update weapons and projectiles
-        const newProjectiles = this.weaponSystem.update(
+        const weaponResult = this.weaponSystem.update(
             deltaTime,
             this.player,
             this.gameState.enemies,
             this.gameState.projectiles
         );
-        this.gameState.projectiles.push(...newProjectiles);
+        this.gameState.projectiles.push(...weaponResult.newProjectiles);
+
+        // 5b. Handle garlic aura hits (damage numbers + effects)
+        for (const hit of weaponResult.auraHits) {
+            // Damage number for aura damage (green tint for garlic)
+            const dmgNum = new DamageNumber();
+            const offsetX = (Math.random() - 0.5) * 30;
+            const offsetY = -5 - Math.random() * 10;
+            dmgNum.init(
+                hit.enemy.position.x + offsetX,
+                hit.enemy.position.y + offsetY,
+                Math.ceil(hit.damage)
+            );
+            dmgNum.color = '#90EE90'; // Light green for garlic
+            this.gameState.damageNumbers.push(dmgNum);
+
+            // Apply hit effect (smaller than projectile hit)
+            this.effectSystem.scalePulse(hit.enemy, 0.08, 1.1);
+        }
 
         // 6. Check collisions (includes projectile-enemy)
         const collisionResults = this.collisionSystem.update(this.gameState);
 
-        // 7. Spawn XP pickups from dead enemies
+        // 6b. Spawn damage numbers and effects for enemies hit
+        for (const enemy of collisionResults.enemiesHit) {
+            // Damage number
+            const dmgNum = new DamageNumber();
+            const offsetX = (Math.random() - 0.5) * 50;
+            const offsetY = -5 - Math.random() * 15;
+            dmgNum.init(
+                enemy.position.x + offsetX,
+                enemy.position.y + offsetY,
+                Math.ceil(enemy.lastDamageTaken || 5)
+            );
+            this.gameState.damageNumbers.push(dmgNum);
+
+            // Apply ENEMY_HIT effects (scale pulse, flash, particles)
+            this.effectSystem.applyPreset(
+                EFFECT_PRESETS.ENEMY_HIT,
+                enemy,
+                this.particleSystem
+            );
+        }
+
+        // 7. Spawn XP pickups and death effects from dead enemies
         const deadEnemies = this.gameState.enemies.filter(e => !e.alive);
         for (const enemy of deadEnemies) {
             const pickups = this.experienceSystem.spawnPickupsFromEnemy(enemy);
             this.gameState.pickups.push(...pickups);
+
+            // Apply ENEMY_DEATH effects (particles burst)
+            this.effectSystem.applyPreset(
+                EFFECT_PRESETS.ENEMY_DEATH,
+                enemy,
+                this.particleSystem
+            );
         }
 
         // 8. Remove dead entities
@@ -173,13 +230,28 @@ class Game {
         this.experienceSystem.update(deltaTime, this.player, this.gameState.pickups);
         this.gameState.pickups = this.gameState.pickups.filter(p => p.alive);
 
+        // 9b. Update damage numbers
+        for (const dmgNum of this.gameState.damageNumbers) {
+            dmgNum.update(deltaTime);
+        }
+        this.gameState.damageNumbers = this.gameState.damageNumbers.filter(d => d.alive);
+
+        // 9c. Update effects and particles
+        this.effectSystem.update(deltaTime);
+        this.particleSystem.update(deltaTime);
+
         // 10. Check game over
         if (!this.player.isAlive()) {
             this.handleGameOver();
         }
 
-        // 11. Render everything
-        this.renderSystem.render(this.ctx, this.camera.getPosition(), this.gameState);
+        // 11. Render everything (include particles and garlic aura in gameState for rendering)
+        const renderState = {
+            ...this.gameState,
+            particles: this.particleSystem.getParticles(),
+            garlicAura: this.weaponSystem.getGarlicAura(this.player)
+        };
+        this.renderSystem.render(this.ctx, this.camera.getPosition(), renderState);
 
         // 12. Draw HUD (or level-up UI if leveling)
         if (this.experienceSystem.isLevelingUp) {
@@ -415,7 +487,7 @@ class Game {
             GAME_CONFIG.WORLD.HEIGHT / 2
         );
 
-        // Give player starting weapon again
+        // Give player starting weapon again (Magic Wand only)
         const startingWeapon = createWeapon('magic_wand');
         if (startingWeapon) {
             this.player.weapons.push(startingWeapon);
@@ -426,10 +498,13 @@ class Game {
         this.gameState.projectiles = [];
         this.gameState.pickups = [];
         this.gameState.particles = [];
+        this.gameState.damageNumbers = [];
 
         // Reset systems
         this.spawnSystem.reset();
         this.experienceSystem.isLevelingUp = false;
+        this.effectSystem.clear();
+        this.particleSystem.clear();
 
         // Reset camera to center on player
         this.camera.centerOn(this.player.position);
