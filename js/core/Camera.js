@@ -41,6 +41,12 @@ export class Camera {
 
         /** @type {number} World height */
         this.worldHeight = GAME_CONFIG.WORLD.HEIGHT;
+
+        // Screen shake effect properties
+        /** @type {number} Shake X offset */
+        this.shakeOffsetX = 0;
+        /** @type {number} Shake Y offset */
+        this.shakeOffsetY = 0;
     }
 
     /**
@@ -139,10 +145,14 @@ export class Camera {
 
     /**
      * Gets camera position as object (for RenderSystem compatibility)
+     * Includes shake offset for screen shake effects
      * @returns {{x: number, y: number}}
      */
     getPosition() {
-        return { x: this.x, y: this.y };
+        return {
+            x: this.x + this.shakeOffsetX,
+            y: this.y + this.shakeOffsetY
+        };
     }
 
     /**
