@@ -1,0 +1,13 @@
+{
+  "name": "vampire-survivors-clone",
+  "version": "1.0.0",
+  "description": "A Vampire Survivors-style browser game built with HTML5 Canvas",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . -p 3000",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["game", "canvas", "javascript"],
+  "author": "",
+  "license": "MIT"
+}

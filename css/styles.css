@@ -1,0 +1,42 @@
+/* ==========================================================================
+   Vampire Survivors Clone - Main Stylesheet
+   ========================================================================== */
+
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #0a0a0a;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Game Canvas */
+#gameCanvas {
+    display: block;
+    background-color: #1a1a2e;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* UI Overlay Styles (for future use) */
+.ui-overlay {
+    position: absolute;
+    pointer-events: none;
+}
+
+.ui-overlay.interactive {
+    pointer-events: auto;
+}
