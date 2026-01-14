@@ -167,6 +167,11 @@ export class CollisionSystem {
                     continue;
                 }
 
+                // Check if already hit this enemy
+                if (projectile.hitEnemies.has(enemy.id)) {
+                    continue;
+                }
+
                 if (this.checkCircleCollision(projectile, enemy)) {
                     results.push({
                         projectile,
@@ -177,16 +182,20 @@ export class CollisionSystem {
                     // Apply damage to enemy
                     enemy.takeDamage(projectile.damage);
 
-                    // Track projectile hits
+                    // Track this enemy as hit
+                    projectile.hitEnemies.add(enemy.id);
+
+                    // Track hit count
                     projectile.hitCount = (projectile.hitCount || 0) + 1;
 
                     // Deactivate projectile if it exceeded pierce count
                     if (projectile.hitCount > (projectile.piercing || 0)) {
                         projectile.alive = false;
+                        break; // Stop checking other enemies if projectile is dead
                     }
 
-                    // Only hit one enemy per projectile per frame
-                    break;
+                    // Continue to next enemy if piercing allowed
+                    // No break here unless dead
                 }
             }
         }

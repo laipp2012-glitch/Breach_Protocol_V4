@@ -8,6 +8,7 @@
 import { Vector2D } from '../utils/Vector2D.js';
 import { GAME_CONFIG } from '../config/GameConfig.js';
 import { getPassiveConfig, getPassiveEffectAtLevel } from '../config/PassiveConfig.js';
+import { createWeapon, WEAPON_TYPES, applyUpgrade } from '../config/WeaponConfig.js';
 
 /**
  * Player entity class
@@ -244,6 +245,47 @@ export class Player {
         this.passiveStats = this.calculatePassiveStats();
     }
 
+    /**
+     * Adds a weapon to the player
+     * @param {string} typeId - Weapon type ID
+     */
+    addWeapon(typeId) {
+        // Check if already have it
+        if (this.weapons.some(w => w.id === typeId)) {
+            return false;
+        }
+
+        const weapon = createWeapon(typeId);
+        if (weapon) {
+            this.weapons.push(weapon);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Upgrades an existing weapon
+     * @param {string} weaponId - Weapon ID
+     */
+    upgradeWeapon(weaponId) {
+        const weapon = this.weapons.find(w => w.id === weaponId);
+        if (!weapon) return false;
+
+        if (weapon.level >= weapon.maxLevel) return false;
+
+        weapon.level++;
+
+        // Apply specific upgrade effect for this level
+        if (weapon.upgrades) {
+            const upgrade = weapon.upgrades.find(u => u.level === weapon.level);
+            if (upgrade) {
+                applyUpgrade(weapon, upgrade);
+            }
+        }
+
+        return true;
+    }
+
     // ============================================
     // PASSIVE ITEM SYSTEM
     // ============================================
@@ -314,11 +356,16 @@ export class Player {
      */
     calculatePassiveStats() {
         const stats = {
+            // Weapon Modifiers
             damageMultiplier: 1.0,
-            speedMultiplier: 1.0,
-            cooldownMultiplier: 1.0,
-            xpMultiplier: 1.0,
             areaMultiplier: 1.0,
+            cooldownMultiplier: 0.0, // Additive reduction (e.g. 0.1 = 10% reduction)
+            speedMultiplier: 1.0,
+            durationMultiplier: 1.0,
+            amountBonus: 0,
+
+            // Global / Player Stats
+            xpMultiplier: 1.0,
             pickupRadiusBonus: 0,
             maxHealthBonus: 0,
             damageReduction: 0,
@@ -335,8 +382,16 @@ export class Player {
             for (const [key, value] of Object.entries(effect)) {
                 if (key === 'level') continue;
 
+                // Handle cooldown specially if it's negative in config (e.g. -0.1)
+                // We want to sum reductions.
+
+                if (key === 'cooldownMultiplier') {
+                    // Config has negative values (e.g. -0.08)
+                    // We sum them up. Result -0.4 means 40% reduction.
+                    stats.cooldownMultiplier += value;
+                }
                 // Multipliers stack additively (1.0 + 0.1 + 0.1 = 1.2)
-                if (key.includes('Multiplier')) {
+                else if (key.includes('Multiplier')) {
                     stats[key] += value;
                 }
                 // Flat bonuses stack additively

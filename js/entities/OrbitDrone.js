@@ -40,8 +40,11 @@ export class OrbitDrone {
         /** @type {number} Damage dealt on contact */
         this.damage = config.damage;
 
+        /** @type {number} Drone Size Multiplier */
+        this.size = config.size || 1.0;
+
         /** @type {number} Collision radius */
-        this.radius = 8;
+        this.radius = 8 * this.size;
 
         /** @type {string} ASCII character to render */
         this.droneChar = config.droneChar || 'o';

@@ -53,8 +53,11 @@ export class Projectile {
         /** @type {number} Number of enemies hit */
         this.hitCount = 0;
 
-        /** @type {number} Collision radius */
-        this.radius = 4;
+        /** @type {number} Projectile Size Multiplier */
+        this.size = weapon.size || 1.0;
+
+        /** @type {number} Collision radius (Base 4 * size) */
+        this.radius = 4 * this.size;
 
         /** @type {boolean} Whether projectile is active */
         this.alive = true;
@@ -73,10 +76,13 @@ export class Projectile {
         this.homingStrength = weapon.homingStrength || 0;
 
         /** @type {number} Maximum distance to acquire/track targets */
-        this.lockOnRadius = weapon.lockOnRadius || 0;
+        this.lockOnRadius = weapon.lockOnRadius || 400; // Default 400
 
         /** @type {Object|null} Currently tracked enemy target */
         this.targetEnemy = null;
+
+        /** @type {Set<string>} Set of IDs of enemies already hit */
+        this.hitEnemies = new Set();
     }
 
 

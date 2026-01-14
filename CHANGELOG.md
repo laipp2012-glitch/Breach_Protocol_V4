@@ -3,6 +3,27 @@
 > **Generated on:** 2026-01-14
 > **Context:** Summary of implemented vs. pending features based on codebase analysis.
 
+## 🆕 Recent Updates
+
+### Debug & UI Tools
+- **Debug Menu**: Added in-game debug panel (`DebugUI.js`) accessible via bottom-left button or `DEBUG` config. Includes:
+    - **Inventory Management**: Add/Level Up any weapon or passive instantly.
+    - **Cheats**: God Mode, XP Injection, Kill All Enemies, Full Heal.
+    - **Stats**: Real-time monitoring of entity counts and player stats.
+- **HUD Enhancement**:
+    - Replaced generic inventory boxes with specific **Item Slots**.
+    - Slots display the unique **Symbol** and **Color** of equipped weapons/passives.
+
+### Gameplay Balance & Mechanics
+- **Weapon Mechanics Overhaul**:
+    - **Multi-Targeting**: Weapons with multiple projectiles (e.g., upgraded Wand) now split attacks between multiple enemies instead of focusing on one.
+    - **Auto-Spread**: Standard projectiles now fan out automatically when count > 1.
+    - **Tactical Aiming**: Removed predictive "aimbot" logic; projectiles now fire at current enemy position, allowing for dodge mechanics.
+    - **Directional Spread**: Knife weapon now fires in a fan pattern when amount increases.
+- **Physics & Logic**:
+    - **Piercing Fix**: Fixed issue where piercing projectiles would hit the same enemy multiple times per frame. Now tracks unique hits per projectile.
+    - **Visual Clarity**: Multi-projectile attacks are now visually distinct and less clumpy.
+
 ## ✅ Implemented Features
 
 ### Core Engine

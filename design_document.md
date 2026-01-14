@@ -48,51 +48,52 @@ The game utilizes an auto-battler system where the player focuses solely on posi
 
 ### 3.1 Magic Wand
 -   **Type**: Projectile
--   **Behavior**: Fires a projectile at the nearest enemy.
--   **Visual**: ASCII character `*` (Yellow).
+-   **Behavior**: Fires magic projectiles at the nearest enemy (multi-target at higher levels).
+-   **Visual**: Symbol `¡` (Blue `#8888ff`).
 
 ### 3.2 Knife
 -   **Type**: Directional Projectile
--   **Behavior**: Fires fast projectiles in the player's movement direction.
--   **Visual**: ASCII character `/` (Silver).
+-   **Behavior**: Fires fast customisable projectiles in movement direction (spread pattern at higher levels).
+-   **Visual**: Symbol `†` (Silver `#cccccc`).
 
 ### 3.3 Garlic
 -   **Type**: Area of Effect (AoE)
 -   **Behavior**: Creates a damaging field around the player.
--   **Visual**: ASCII aura `◎` (Light Green).
+-   **Visual**: Symbol `○` (Yellow `#ffff00`).
 
-### 3.4 Security Drone
+### 3.4 Orbiting Shield
 -   **Type**: Orbit
 -   **Behavior**: Deploys defensive drones that circle the player.
--   **Visual**: ASCII character `D` (Cyan).
+-   **Visual**: Symbol `♦` (Cyan `#00ffff`).
 
-### 3.5 Scatter Cannon
+### 3.5 Scatter Shot
 -   **Type**: Spread Projectile
--   **Behavior**: Fires a shotgun-like blast of pellets.
--   **Visual**: ASCII character `.` (Orange).
+-   **Behavior**: Fires a shotgun-like blast of projectiles.
+-   **Visual**: Symbol `░` (Red `#ff8888`).
 
-### 3.6 Homing Seeker
+### 3.6 Magic Missile (Seeker)
 -   **Type**: Tracking Projectile
 -   **Behavior**: Fires missiles that actively steer toward targets.
--   **Visual**: ASCII character `>` (Magenta).
+-   **Visual**: Symbol `»` (Magenta `#ff00ff`).
 
-### 3.7 Logic Bomb (Mine)
+### 3.7 Proximity Mine
 -   **Type**: Deployable
 -   **Behavior**: Stationary mines that explode when enemies approach.
--   **Visual**: ASCII character `*` (Purple).
+-   **Visual**: Symbol `x` (Green `#00ff00`).
 
 ### 3.8 Passive Items
-Passive items provide stat boosts that persist for the entire run.
--   **Damage Amp** (`+`): Increases damage multiplier (+10% - +50%).
--   **Wings** (`^`): Increases movement speed (+10% - +50%).
--   **Magnet** (`U`): Increases pickup radius (+20 - +100 px).
--   **Vigor** (`H`): Increases maximum health (+20 - +100 HP).
--   **Cooldown** (`C`): Reduces weapon cooldowns (-8% - -40%).
--   **Armor** (`#`): Reduces damage taken (flat 1 - 5 point reduction).
--   **Greed** (`$`): Increases XP multiplier (+10% - +50%).
--   **Luck** (`%`): Increases luck chance for criticals/drops.
--   **Regeneration** (`&`): Auto-repairs health over time (0.5 - 2.5 HP/sec).
--   **Area** (`O`): Increases weapon AoE size (+10% - +50%).
+Passive items provide stat boosts that persist for the entire run. All have associated symbols and colors displayed in the HUD.
+-   **Damage Amp** (`+`): Increases damage multiplier.
+-   **Wings** (`^`): Increases movement speed.
+-   **Magnet** (`U`): Increases pickup radius.
+-   **Vigor** (`H`): Increases maximum health.
+-   **Cooldown** (`C`): Reduces weapon cooldowns.
+-   **Armor** (`#`): Reduces damage taken.
+-   **Greed** (`$`): Increases XP multiplier.
+-   **Luck** (`%`): Increases luck chance.
+-   **Regeneration** (`&`): Auto-repairs health.
+-   **Area** (`O`): Increases weapon AoE size.
+-   **Duration** (`T`): Increases weapon effect duration.
 
 ---
 
@@ -128,6 +129,7 @@ Enemies spawn endlessly at the edges of the screen and track the player.
 -   **Renderer**: Custom `ASCIIRenderer` simulating a terminal interface on Canvas.
 -   **Spatial Hashing**: Optimizes collision detection.
 -   **Object Pooling**: Reuses projectile and particle objects.
+-   **Unique IDs**: All entities have unique IDs for tracking (e.g., piercing logic).
 
 ### 5.4 Stat System
 Stats are calculated dynamically each frame to support upgrades and temporary buffs.
@@ -158,13 +160,26 @@ Enemies spawn dynamically based on camera position and game time.
 -   **Top Left**: Performance stats (FPS) & Debug info (if enabled).
 -   **Top Center**: Health Bar (Green/Red) & Experience Bar (Cyan).
 -   **Bottom Left**: Kill Count & Survival Time.
--   **Right Side**: "Stats Panel" showing current attributes (SPD, DMG, CD) and equipped keys (Weapons/Passives).
+-   **Right Side**: "Stats Panel" showing current attributes (SPD, DMG, CD).
+-   **Inventory Slots**:
+    -   Visual indicators for 6 Weapon slots and 6 Passive slots.
+    -   Displays specific **Symbol** and **Color** for each equipped item.
+    -   Empty slots shown as gray outlines.
 
-### 6.2 Game Screens
+### 6.2 Debug Menu
+-   **Access**: Click "DEBUG" button in bottom-left corner.
+-   **Tabs**:
+    -   *Weapons*: Add or Level Up any weapon instantly.
+    -   *Passives*: Add or Level Up any passive item.
+    -   *Cheats*: God Mode, Inject XP, Instant Level Up, Kill All Enemies, Full Heal.
+-   **Features**: Scrollable lists, real-time stat tracking.
+
+### 6.3 Game Screens
 -   **Title Screen**:
     -   Displays "BREACH PROTOCOL" logo with glow effect.
     -   Prompt: "PRESS SPACE TO START".
     -   Controls hint overlay.
+    -   Debug menu accessible for pre-game setup.
 -   **Pause Overlay**:
     -   Semi-transparent black overlay.
     -   Displays current Level and Time.

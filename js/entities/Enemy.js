@@ -22,6 +22,9 @@ export class Enemy {
         /** @type {string} Entity type identifier */
         this.type = 'enemy';
 
+        /** @type {string} Unique ID for tracking */
+        this.id = Math.random().toString(36).substr(2, 9);
+
         /** @type {string} Enemy type (basic, tank, fast) */
         this.enemyType = config.id;
 

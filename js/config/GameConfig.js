@@ -40,10 +40,20 @@ export const GAME_CONFIG = {
 
     // Spawn system settings
     SPAWN: {
-        BASE_RATE: 1,        // Enemies per second at start
-        MAX_RATE: 10,        // Maximum enemies per second
         MAX_ENEMIES: 500,    // Maximum enemies on screen
-        MARGIN: 50           // Pixels outside camera view for spawn
+        MARGIN: 50,          // Pixels outside camera view for spawn
+
+        // Continuous spawn settings (Trickle)
+        CONTINUOUS_INTERVAL: 0.7, // Seconds between single spawns (~1.4 enemies/sec)
+
+        // Wave definitions (Time in seconds)
+        // [Time Limit, Interval, Wave Size, Min Directions, Max Directions]
+        WAVES: [
+            { TIME_LIMIT: 180, INTERVAL: 10, SIZE: 15, MIN_DIRS: 2, MAX_DIRS: 3 }, // 0-3 mins
+            { TIME_LIMIT: 360, INTERVAL: 8, SIZE: 22, MIN_DIRS: 2, MAX_DIRS: 4 }, // 3-6 mins
+            { TIME_LIMIT: 600, INTERVAL: 6, SIZE: 30, MIN_DIRS: 3, MAX_DIRS: 4 }, // 6-10 mins
+            { TIME_LIMIT: Infinity, INTERVAL: 5, SIZE: 45, MIN_DIRS: 4, MAX_DIRS: 4 } // 10+ mins
+        ]
     },
 
     // Colors (for ASCII rendering)
@@ -127,4 +137,4 @@ Object.freeze(GAME_CONFIG.COLORS);
 Object.freeze(GAME_CONFIG.FONTS);
 Object.freeze(GAME_CONFIG.ASCII);
 Object.freeze(GAME_CONFIG.GRID);
-Object.freeze(GAME_CONFIG.DEBUG);
+// Note: DEBUG is intentionally NOT frozen to allow runtime toggles (god mode, etc.)

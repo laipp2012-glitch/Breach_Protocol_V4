@@ -115,7 +115,7 @@ export class LevelUpUI {
             ctx.fillStyle = isHovered ? '#333366' : '#222244';
             ctx.fillRect(x, y, boxWidth, boxHeight);
 
-            // Box border
+            // Box border - simple blue, yellow when hovered
             ctx.strokeStyle = isHovered ? '#ffff00' : '#4444aa';
             ctx.lineWidth = isHovered ? 3 : 2;
             ctx.strokeRect(x, y, boxWidth, boxHeight);

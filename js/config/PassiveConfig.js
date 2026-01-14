@@ -208,6 +208,26 @@ export const PassiveConfig = {
             { level: 4, areaMultiplier: 0.40 },
             { level: 5, areaMultiplier: 0.50 }
         ]
+    },
+
+    /**
+     * Duration - Increases weapon effect duration
+     */
+    DURATION: {
+        id: 'duration',
+        name: 'Duration',
+        symbol: '~',
+        color: '#8888FF',
+        description: 'Increases weapon effect duration',
+        maxLevel: 5,
+        rarity: 'uncommon',
+        effects: [
+            { level: 1, durationMultiplier: 0.10 },  // +10% duration
+            { level: 2, durationMultiplier: 0.20 },
+            { level: 3, durationMultiplier: 0.30 },
+            { level: 4, durationMultiplier: 0.40 },
+            { level: 5, durationMultiplier: 0.50 }
+        ]
     }
 };
 

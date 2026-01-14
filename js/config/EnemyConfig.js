@@ -43,7 +43,7 @@ export const ENEMY_TYPES = {
     TANK: {
         id: 'tank',
         name: 'Tank',
-        health: 50,
+        health: 35,
         speed: 40,
         damage: 15,
         xpValue: 5,
@@ -104,7 +104,7 @@ export const ENEMY_TYPES = {
         health: 15,
         speed: 50,
         damage: 8,
-        xpValue: 8,
+        xpValue: 3,
         radius: 14,
         spawnWeight: 15,
 
@@ -143,21 +143,31 @@ export function getTotalSpawnWeight() {
 
 /**
  * Select a random enemy type based on spawn weights
+ * @param {Array<string>} [allowedIds] - Optional list of allowed enemy IDs to filter by
  * @returns {EnemyType} Selected enemy type
  */
-export function getRandomEnemyType() {
-    const totalWeight = getTotalSpawnWeight();
+export function getRandomEnemyType(allowedIds = null) {
+    let types = Object.values(ENEMY_TYPES);
+
+    // Filter if allowedIds provided
+    if (allowedIds) {
+        types = types.filter(t => allowedIds.includes(t.id));
+    }
+
+    // Calculate total weight of available types
+    const totalWeight = types.reduce((sum, type) => sum + type.spawnWeight, 0);
+
     let random = Math.random() * totalWeight;
 
-    for (const type of Object.values(ENEMY_TYPES)) {
+    for (const type of types) {
         random -= type.spawnWeight;
         if (random <= 0) {
             return type;
         }
     }
 
-    // Fallback to basic
-    return ENEMY_TYPES.BASIC;
+    // Fallback to first available or Basic
+    return types[0] || ENEMY_TYPES.BASIC;
 }
 
 // Freeze config to prevent accidental modification

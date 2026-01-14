@@ -127,7 +127,7 @@ export class ASCIIRenderer extends IRenderer {
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {number} radius - Projectile radius
+     * @param {number} radius - Projectile radius (affects visual size)
      * @param {string} type - Projectile/weapon type
      * @param {string|null} customChar - Optional custom character override
      * @param {string|null} customColor - Optional custom color override
@@ -169,7 +169,12 @@ export class ASCIIRenderer extends IRenderer {
             }
         }
 
-        ctx.font = GAME_CONFIG.FONTS.PROJECTILE;
+        // Scale font size based on radius (base radius 4 = 12px font)
+        const baseFontSize = 12;
+        const baseRadius = 4;
+        const scaledFontSize = Math.round(baseFontSize * (radius / baseRadius));
+
+        ctx.font = `${scaledFontSize}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = color;

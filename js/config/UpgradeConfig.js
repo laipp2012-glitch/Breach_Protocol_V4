@@ -25,10 +25,26 @@ export const UPGRADE_CATEGORY = {
  * @returns {Object} Upgrade option
  */
 export function createWeaponUpgrade(weapon) {
+    let description = `Upgrade ${weapon.name} to level ${weapon.level + 1}`;
+
+    // Attempt to find specific upgrade info
+    if (weapon.upgrades) {
+        const nextUpgrade = weapon.upgrades.find(u => u.level === weapon.level + 1);
+        if (nextUpgrade && nextUpgrade.description) {
+            description = nextUpgrade.description;
+        } else if (nextUpgrade) {
+            // Fallback if description missing but property exists
+            const prop = nextUpgrade.property.replace('baseStats.', '');
+            const sign = nextUpgrade.operation === 'add' || nextUpgrade.value > 0 ? '+' : ''; // simplistic check
+            // For 'set' operation, showing value is tricky without context, but we mostly added descriptions in config
+            description = `${prop} ${sign}${nextUpgrade.value}`;
+        }
+    }
+
     return {
         id: `upgrade_${weapon.id}`,
         name: `Level Up ${weapon.name}`,
-        description: `Upgrade ${weapon.name} to level ${weapon.level + 1}`,
+        description: description,
         category: UPGRADE_CATEGORY.WEAPON,
         weaponId: weapon.id,
         symbol: '↑',

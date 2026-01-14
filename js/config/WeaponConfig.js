@@ -1,27 +1,34 @@
 /**
  * Weapon Configuration
- * Defines all weapon types and their properties
+ * Defines all weapon types and their properties using a unified schema
  * @module config/WeaponConfig
  */
 
 /**
- * @typedef {Object} WeaponType
+ * Standard Weapon Definition Schema
+ * @typedef {Object} WeaponConfig
  * @property {string} id - Unique identifier
  * @property {string} name - Display name
- * @property {string} description - Weapon description
- * @property {number} damage - Base damage per hit
- * @property {number} attackSpeed - Attacks per second
- * @property {number} projectileSpeed - Projectile speed in pixels/second
- * @property {number} projectileCount - Number of projectiles per attack
- * @property {number} piercing - Number of enemies a projectile can hit (0 = hits 1 enemy)
- * @property {number} range - Maximum projectile travel distance
- * @property {number} maxLevel - Maximum upgrade level
+ * @property {string} description - Description
+ * @property {Object} baseStats - Base stats at level 1
+ * @property {number} baseStats.damage - Damage per hit
+ * @property {number} baseStats.cooldown - Time between attacks (seconds)
+ * @property {number} baseStats.area - Primary Area stat (Range, Radius, Spread)
+ * @property {number} baseStats.size - Projectile Size / Scale (Default 1.0)
+ * @property {number} baseStats.speed - Projectile / Orbit Speed
+ * @property {number} baseStats.duration - Lifetime / Duration (seconds)
+ * @property {number} baseStats.amount - Number of projectiles/drones per fire
+ * @property {number} baseStats.pierce - Number of enemies to pierce
+ * @property {Object} affectedBy - Flags for passive stat scaling
+ * @property {boolean} affectedBy.damage - affected by damageMultiplier
+ * @property {boolean} affectedBy.area - affected by areaMultiplier
+ * @property {boolean} affectedBy.cooldown - affected by cooldownMultiplier
+ * @property {boolean} affectedBy.speed - affected by speedMultiplier
+ * @property {boolean} affectedBy.duration - affected by durationMultiplier
+ * @property {boolean} affectedBy.amount - affected by amountBonus
+ * @property {Array} upgrades - Array of upgrade steps
  */
 
-/**
- * Weapon type definitions
- * @type {Object.<string, WeaponType>}
- */
 export const WEAPON_TYPES = {
     /**
      * Magic Wand - Basic auto-targeting projectile weapon
@@ -29,41 +36,79 @@ export const WEAPON_TYPES = {
     MAGIC_WAND: {
         id: 'magic_wand',
         name: 'Magic Wand',
+        symbol: '¡',
+        color: '#8888ff',
         description: 'Fires magic projectiles at the nearest enemy',
-        damage: 5,
-        attackSpeed: 1,        // 1.5 attacks per second
-        projectileSpeed: 300,    // Pixels per second
-        projectileCount: 1,      // Projectiles per attack
-        piercing: 0,             // Hits 1 enemy only (piercing + 1)
-        range: 400,              // Max travel distance
+        type: 'projectile',
+        baseStats: {
+            damage: 5,
+            cooldown: 1.0,
+            area: 400,        // Range
+            size: 1.0,
+            speed: 200,
+            duration: 0,
+            amount: 1,
+            pierce: 0
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Size (User Request)
+            cooldown: true,
+            speed: true,
+            duration: false,
+            amount: true
+        },
         maxLevel: 8,
-        // Level bonuses (applied per level)
-        levelBonus: {
-            damage: 3,           // +3 damage per level
-            attackSpeed: 0.1,    // +0.1 attacks/sec per level
-            projectileCount: 0   // +1 projectile at levels 3, 5, 7
-        }
+        // Unrolled legacy levelBonus: damage+3, speed+0.1 (attacks/sec equivalent hard to map linearly to cooldown, doing best effort), amount+1 at 3,5,7
+        upgrades: [
+            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 13, operation: 'set' },
+            { level: 3, description: '+Amount', property: 'baseStats.amount', value: 2, operation: 'set' },
+            { level: 4, description: '+Damage', property: 'baseStats.damage', value: 16, operation: 'set' },
+            { level: 5, description: '+Amount', property: 'baseStats.amount', value: 3, operation: 'set' },
+            { level: 6, description: '+Damage', property: 'baseStats.damage', value: 19, operation: 'set' },
+            { level: 7, description: '+Amount', property: 'baseStats.amount', value: 4, operation: 'set' },
+            { level: 8, description: '+Damage, -Cooldown', property: 'baseStats.damage', value: 22, operation: 'set' }
+        ]
     },
 
     /**
-     * Knife - Fast projectiles in the direction player is moving
+     * Knife - Fast projectiles in movement direction
      */
     KNIFE: {
         id: 'knife',
-        name: 'Knife',
+        name: 'Throwing Knife',
+        symbol: '†',
+        color: '#cccccc',
         description: 'Throws fast knives in the direction you are moving',
-        damage: 8,
-        attackSpeed: 1.5,
-        projectileSpeed: 500,
-        projectileCount: 1,
-        piercing: 1,             // Pierces through 2 enemies
-        range: 300,
+        type: 'projectile_directional',
+        baseStats: {
+            damage: 4,
+            cooldown: 2.0,   // approx 1.5 attacks/sec
+            area: 300,        // Range
+            size: 1.0,
+            speed: 500,
+            duration: 0,
+            amount: 1,
+            pierce: 1
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Size
+            cooldown: true,
+            speed: true,
+            duration: false,
+            amount: true
+        },
         maxLevel: 8,
-        levelBonus: {
-            damage: 2,
-            attackSpeed: 0.15,
-            projectileCount: 0
-        }
+        upgrades: [
+            { level: 2, description: '+Amount', property: 'baseStats.amount', value: 2, operation: 'set' },
+            { level: 3, description: '-Cooldown', property: 'baseStats.cooldown', value: 0.6, operation: 'set' },
+            { level: 4, description: '+Damage', property: 'baseStats.damage', value: 12, operation: 'set' },
+            { level: 5, description: '+Pierce', property: 'baseStats.pierce', value: 2, operation: 'set' },
+            { level: 6, description: '+Amount', property: 'baseStats.amount', value: 3, operation: 'set' },
+            { level: 7, description: '+Damage', property: 'baseStats.damage', value: 16, operation: 'set' },
+            { level: 8, description: '+Pierce', property: 'baseStats.pierce', value: 3, operation: 'set' }
+        ]
     },
 
     /**
@@ -71,135 +116,207 @@ export const WEAPON_TYPES = {
      */
     GARLIC: {
         id: 'garlic',
-        name: 'Garlic',
+        name: 'Garlic Aura',
+        symbol: '○',
+        color: '#ffff00',
         description: 'Creates a damaging aura around the player',
-        damage: 5,
-        attackSpeed: 2,          // Damage ticks per second
-        projectileSpeed: 0,      // No projectile
-        projectileCount: 0,
-        piercing: 999,           // Hits all in range
-        range: 60,               // Aura radius
+        type: 'aura',
+        baseStats: {
+            damage: 3,        // Increased from 2
+            cooldown: 0.4,    // Reduced from 0.5 (faster ticks)
+            area: 60,         // Radius
+            size: 1.0,        // Visual scale
+            speed: 0,
+            duration: 0,
+            amount: 0,
+            pierce: 999
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Radius
+            cooldown: true,
+            speed: false,
+            duration: false,
+            amount: false
+        },
         maxLevel: 8,
-        levelBonus: {
-            damage: 2,
-            range: 5
-        }
-    },
-
-    /**
-     * Drone - Orbiting defense drones that damage enemies on contact
-     */
-    DRONE: {
-        id: 'drone',
-        name: 'Security Drone',
-        description: 'Deploys defensive drones that orbit and damage enemies',
-        type: 'orbit',           // NEW type for orbit weapons
-        damage: 15,
-        orbitRadius: 80,         // Distance from player
-        orbitSpeed: 180,         // Degrees per second
-        maxDrones: 2,            // Start with 2 drones
-        droneChar: 'D',          // ASCII character
-        droneColor: '#99ff00ff',   // Cyan
-        maxLevel: 5,
-        // Upgrade progression
         upgrades: [
-            { level: 2, property: 'maxDrones', value: 3 },
-            { level: 3, property: 'damage', value: 20 },
-            { level: 4, property: 'maxDrones', value: 4 },
-            { level: 5, property: 'orbitSpeed', value: 240 }
+            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 5, operation: 'set' },
+            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 7, operation: 'set' },
+            { level: 4, description: '+Damage', property: 'baseStats.damage', value: 9, operation: 'set' },
+            { level: 5, description: '+Damage', property: 'baseStats.damage', value: 11, operation: 'set' },
+            { level: 6, description: '+Damage', property: 'baseStats.damage', value: 12, operation: 'set' },
+            { level: 7, description: '+Area', property: 'baseStats.area', value: 80, operation: 'set' },
+            { level: 8, description: '+Area', property: 'baseStats.area', value: 100, operation: 'set' }
         ]
     },
 
     /**
-     * Scatter Cannon - Fires multiple pellets in a cone spread
+     * Drone - Orbiting defense drones
+     */
+    ORBIT: {
+        id: 'orbit',
+        name: 'Orbiting Shield',
+        symbol: '♦',
+        color: '#00ffff',
+        description: 'Deploys defensive drones that orbit and damage enemies',
+        type: 'orbit',
+        baseStats: {
+            damage: 7,
+            cooldown: 0,      // Continuous / Contact
+            area: 80,         // Orbit Radius
+            size: 1.0,
+            speed: 180,       // Orbit Speed
+            duration: 0,
+            amount: 2,
+            pierce: 999,
+            droneChar: 'D',
+            droneColor: '#00FFFF'
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Radius AND Size (User Request)
+            cooldown: false,
+            speed: true,      // Affects Orbit Speed
+            duration: false,
+            amount: true
+        },
+        maxLevel: 5,
+        upgrades: [
+            { level: 2, description: '+1 Drone', property: 'baseStats.amount', value: 3, operation: 'set' },
+            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 20, operation: 'set' },
+            { level: 4, description: '+1 Drone', property: 'baseStats.amount', value: 4, operation: 'set' },
+            { level: 5, description: '+Speed', property: 'baseStats.speed', value: 240, operation: 'set' }
+        ]
+    },
+
+    /**
+     * Scatter Cannon - Cone spread
      */
     SCATTER: {
         id: 'scatter',
-        name: 'Scatter Cannon',
-        description: 'Fires a spread of pellets in a cone',
-        type: 'projectile',          // Uses existing projectile system
-        damage: 12,
-        attackSpeed: 1.2,            // Fires slower than wand (fires/second)
-        projectileSpeed: 350,        // Pellet speed
-        projectileLifetime: 0.4,     // Short range (seconds)
-        pierce: 0,                   // No pierce by default
-        projectileCount: 5,          // Fire 5 pellets
-        spreadAngle: 30,             // 30-degree cone
-        projectileChar: '.',         // Small pellet character
-        projectileColor: '#FFA500',  // Orange
+        name: 'Scatter Shot',
+        symbol: '░',
+        color: '#ff8888',
+        description: 'Fires a spread of short-range projectiles',
+        type: 'projectile_spread',
+        baseStats: {
+            damage: 3,
+            cooldown: 1.0,   // 1.2 attacks/sec
+            area: 300,        // Range (projectile lifetime distance)
+            size: 1.0,
+            speed: 350,
+            duration: 0.4,    // Lifetime
+            amount: 3,
+            pierce: 1,
+            spreadAngle: 45,  // Cone spread in degrees
+            projectileChar: '*',
+            projectileColor: '#FFA500'
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Size
+            cooldown: true,
+            speed: true,
+            duration: true,
+            amount: true
+        },
         maxLevel: 5,
-        // Upgrade progression
         upgrades: [
-            { level: 2, property: 'projectileCount', value: 7 },
-            { level: 3, property: 'damage', value: 18 },
-            { level: 4, property: 'spreadAngle', value: 45 },
-            { level: 5, property: 'pierce', value: 1 }
+            { level: 2, description: '+Amount', property: 'baseStats.amount', value: 7, operation: 'set' },
+            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 18, operation: 'set' },
+            { level: 4, description: '+Spread', property: 'baseStats.spreadAngle', value: 60, operation: 'set' },
+            { level: 5, description: '+Pierce', property: 'baseStats.pierce', value: 1, operation: 'set' }
         ]
     },
 
     /**
-     * Homing Seeker - Fires homing missiles that track enemies
+     * Seeker - Homing missiles
      */
     SEEKER: {
         id: 'seeker',
-        name: 'Homing Seeker',
-        description: 'Fires homing missiles that track enemies',
-        type: 'projectile',          // Uses existing projectile system
-        damage: 3,
-        attackSpeed: 1.5,            // Fires 1.5 times per second
-        projectileSpeed: 200,        // Slower than other projectiles
-        projectileLifetime: 3,       // Long lifetime (3 seconds)
-        pierce: 0,                   // No pierce by default
-        projectileCount: 3,          // Fire 3 missiles at once
-        spreadAngle: 60,             // Wide 60-degree spread
-        isHoming: true,              // Enable homing behavior
-        homingStrength: 180,         // Turn up to 180 deg/sec
-        lockOnRadius: 400,           // Max distance to acquire targets
-        projectileChar: '>',         // Arrow character
-        projectileColor: '#FF00FF',  // Magenta
+        name: 'Magic Missile',
+        symbol: '»',
+        color: '#ff00ff',
+        description: 'Fires homing missiles that chase enemies',
+        type: 'projectile_homing',
+        baseStats: {
+            damage: 3,
+            cooldown: 0.66,
+            area: 400,        // Range (target acquisition / projectile lifetime)
+            size: 1.0,
+            speed: 200,
+            duration: 3.0,
+            amount: 3,
+            pierce: 0,
+            spreadAngle: 60,  // Spread angle in degrees
+            homingStrength: 180,
+            projectileChar: '>',
+            projectileColor: '#FF00FF'
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Size
+            cooldown: true,
+            speed: true,
+            duration: true,
+            amount: true
+        },
         maxLevel: 5,
-        // Upgrade progression
         upgrades: [
-            { level: 2, property: 'projectileCount', value: 4 },
-            { level: 3, property: 'damage', value: 30 },
-            { level: 4, property: 'homingStrength', value: 270 },
-            { level: 5, property: 'projectileCount', value: 5 }
+            { level: 2, description: '+Amount', property: 'baseStats.amount', value: 4, operation: 'set' },
+            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 30, operation: 'set' },
+            { level: 4, description: '+Homing', property: 'baseStats.homingStrength', value: 270, operation: 'set' },
+            { level: 5, description: '+Amount', property: 'baseStats.amount', value: 5, operation: 'set' }
         ]
     },
 
     /**
-     * Logic Bomb - Drops explosive mines that detonate when enemies get close
+     * Mine - Logic Bomb
      */
     MINE: {
         id: 'mine',
-        name: 'Logic Bomb',
+        name: 'Proximity Mine',
+        symbol: 'x',
+        color: '#00ff00',
         description: 'Drops explosive mines that detonate when enemies approach',
-        type: 'deployable',          // NEW type for stationary deployables
-        damage: 40,
-        attackSpeed: 0.5,            // Drops mine every 0.5s (2 per second)
-        mineLifetime: 8,             // Mines last 8 seconds
-        armDelay: 0.3,               // Arms after 0.3s
-        explosionRadius: 60,         // Blast radius
-        maxActiveMines: 10,          // Max mines on field
-        mineChar: '*',               // Asterisk character
-        mineColor: '#FF00FF',        // Magenta (for explosion)
-        mineColorArmed: '#FF00FF',   // Bright when armed
-        mineColorUnarmed: '#880088', // Dimmer when unarmed
+        type: 'deployable',
+        baseStats: {
+            damage: 11,
+            cooldown: 2.0,
+            area: 60,         // Explosion Radius
+            size: 1.0,        // Visual scale
+            speed: 0,
+            duration: 8.0,    // Lifetime
+            amount: 1,        // Mines deployed per cycle
+            pierce: 999,
+            maxActiveMines: 10,
+            armDelay: 0.3,
+            mineChar: '*',
+            mineColor: '#FF00FF',
+            mineColorArmed: '#FF00FF',
+            mineColorUnarmed: '#880088'
+        },
+        affectedBy: {
+            damage: true,
+            area: true,       // Affects Radius
+            cooldown: true,
+            speed: false,
+            duration: true,
+            amount: false     // Amount bonus usually doesn't affect mine count per drop, but could?
+        },
         maxLevel: 5,
-        // Upgrade progression
         upgrades: [
-            { level: 2, property: 'damage', value: 60 },
-            { level: 3, property: 'explosionRadius', value: 80 },
-            { level: 4, property: 'maxActiveMines', value: 15 },
-            { level: 5, property: 'mineLifetime', value: 12 }
+            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 60, operation: 'set' },
+            { level: 3, description: '+Radius', property: 'baseStats.area', value: 80, operation: 'set' },
+            { level: 4, description: '+MaxMines', property: 'baseStats.maxActiveMines', value: 15, operation: 'set' },
+            { level: 5, description: '+Duration', property: 'baseStats.duration', value: 12, operation: 'set' }
         ]
     }
 };
 
 /**
  * Creates a weapon instance from a weapon type
- * @param {string} typeId - Weapon type ID (e.g., 'magic_wand')
- * @returns {Object} Weapon instance with mutable state
  */
 export function createWeapon(typeId) {
     const type = Object.values(WEAPON_TYPES).find(w => w.id === typeId);
@@ -208,177 +325,132 @@ export function createWeapon(typeId) {
         return null;
     }
 
+    // deep copy base stats to avoid mutation of config
     return {
         ...type,
-        cooldown: 0,    // Current cooldown timer
-        level: 1        // Current upgrade level
+        baseStats: { ...type.baseStats },
+        cooldown: 0,
+        level: 1
     };
 }
 
 /**
- * Gets the effective stats for a weapon at its current level
+ * Gets effective weapon stats including passives
  * @param {Object} weapon - Weapon instance
- * @returns {Object} Calculated stats
+ * @param {Object} passiveStats - Player's calculated passive stats
+ * @returns {Object} Final calculated stats
  */
-export function getWeaponStats(weapon) {
-    const levelMultiplier = weapon.level - 1;
-    const bonus = weapon.levelBonus || {};
+export function getEffectiveWeaponStats(weapon, passiveStats = {}) {
+    // 1. Start with current base stats (which should include level upgrades applied to the instance)
+    const stats = { ...weapon.baseStats };
 
+    // 2. Apply passive modifiers based on affectedBy flags
+    const flags = weapon.affectedBy || {};
+
+    // Damage
+    if (flags.damage && passiveStats.damageMultiplier) {
+        stats.damage *= passiveStats.damageMultiplier;
+    }
+
+    // Cooldown
+    // Formula: Base * (1 - Reduction). 
+    // passiveStats.cooldownMultiplier is summation of reductions (negative values expected from config? 
+    // Wait, Player.js sums them. Config has -0.08. 
+    // So passiveStats.cooldownMultiplier will be e.g. -0.4.
+    // So we want: Base * (1 + (-0.4)) = Base * 0.6.
+    if (flags.cooldown && passiveStats.cooldownMultiplier) {
+        // Clamp minimum cooldown to 0.1s to prevent infinite fire
+        stats.cooldown = Math.max(0.1, stats.cooldown * (1 + passiveStats.cooldownMultiplier));
+    }
+
+    // Speed (Projectile / Orbit)
+    if (flags.speed && passiveStats.speedMultiplier) {
+        // NOTE: Usually speedMultiplier is for Player Speed (Wings).
+        // If we want a separate Projectile Speed passive, we need a separate stat.
+        // For now, if config says speed: true, we use the global speedMultiplier.
+        // This makes Wings affect Projectile Speed if flag is true.
+        // User requirements might vary, but based on schema this is the link.
+        stats.speed *= passiveStats.speedMultiplier;
+    }
+
+    // Amount
+    if (flags.amount && passiveStats.amountBonus) {
+        stats.amount += passiveStats.amountBonus;
+    }
+
+    // Duration
+    if (flags.duration && passiveStats.durationMultiplier) {
+        stats.duration *= passiveStats.durationMultiplier;
+    }
+
+    // Area (Context Dependent Logic)
+    if (flags.area && passiveStats.areaMultiplier) {
+        const type = weapon.type || '';
+        const mult = passiveStats.areaMultiplier; // e.g. 1.5 (+50%)
+
+        if (type.startsWith('projectile')) {
+            // Projectiles: Area -> Size
+            stats.size *= mult;
+        } else if (type === 'aura' || type === 'deployable') {
+            // Aura/Mine: Area -> Radius/Area
+            stats.area *= mult;
+        } else if (type === 'orbit') {
+            // Orbit: Area -> Radius AND Size
+            stats.area *= mult; // increased orbit radius
+            stats.size *= mult; // increased drone size
+        }
+    }
+
+    // 3. Derived stats for compatibility/convenience
     return {
-        damage: weapon.damage + (bonus.damage || 0) * levelMultiplier,
-        attackSpeed: weapon.attackSpeed + (bonus.attackSpeed || 0) * levelMultiplier,
-        projectileSpeed: weapon.projectileSpeed,
-        projectileCount: weapon.projectileCount + Math.floor(levelMultiplier / 2) * (bonus.projectileCount || 0),
-        piercing: weapon.piercing,
-        range: weapon.range + (bonus.range || 0) * levelMultiplier
+        ...stats,
+        // Legacy mappings for consumers not yet updated (will remove in Phase 3)
+        projectileSpeed: stats.speed,
+        projectileCount: Math.floor(stats.amount),
+        range: stats.area,
+        attackSpeed: 1 / Math.max(0.01, stats.cooldown)
     };
 }
 
 /**
- * Gets the effective stats for an orbit-type weapon at its current level
- * @param {Object} weapon - Orbit weapon instance
- * @returns {Object} Calculated orbit stats
+ * Applies a single upgrade to a weapon instance
+ * @param {Object} weapon - Weapon to upgrade
+ * @param {Object} upgrade - Upgrade definition
  */
-export function getOrbitWeaponStats(weapon) {
-    // Start with base values
-    let stats = {
-        damage: weapon.damage,
-        orbitRadius: weapon.orbitRadius,
-        orbitSpeed: weapon.orbitSpeed,
-        maxDrones: weapon.maxDrones,
-        droneChar: weapon.droneChar,
-        droneColor: weapon.droneColor
-    };
-
-    // Apply upgrades based on level
-    if (weapon.upgrades) {
-        for (const upgrade of weapon.upgrades) {
-            if (weapon.level >= upgrade.level) {
-                stats[upgrade.property] = upgrade.value;
-            }
-        }
+export function applyUpgrade(weapon, upgrade) {
+    if (upgrade.operation === 'set') {
+        setNestedProperty(weapon, upgrade.property, upgrade.value);
+    } else if (upgrade.operation === 'add') {
+        const current = getNestedProperty(weapon, upgrade.property);
+        setNestedProperty(weapon, upgrade.property, current + upgrade.value);
     }
-
-    return stats;
 }
 
-/**
- * Gets the effective stats for a scatter-type weapon at its current level
- * @param {Object} weapon - Scatter weapon instance
- * @returns {Object} Calculated scatter stats
- */
-export function getScatterWeaponStats(weapon) {
-    // Start with base values
-    let stats = {
-        damage: weapon.damage,
-        attackSpeed: weapon.attackSpeed,
-        projectileSpeed: weapon.projectileSpeed,
-        projectileLifetime: weapon.projectileLifetime,
-        pierce: weapon.pierce,
-        projectileCount: weapon.projectileCount,
-        spreadAngle: weapon.spreadAngle,
-        projectileChar: weapon.projectileChar,
-        projectileColor: weapon.projectileColor,
-        // Calculate range from lifetime and speed
-        range: weapon.projectileSpeed * weapon.projectileLifetime
-    };
-
-    // Apply upgrades based on level
-    if (weapon.upgrades) {
-        for (const upgrade of weapon.upgrades) {
-            if (weapon.level >= upgrade.level) {
-                stats[upgrade.property] = upgrade.value;
-            }
-        }
+// Helper for nested property access (e.g. 'baseStats.damage')
+function setNestedProperty(obj, path, value) {
+    const parts = path.split('.');
+    let current = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]];
     }
-
-    // Recalculate range if lifetime changed via upgrade
-    stats.range = stats.projectileSpeed * stats.projectileLifetime;
-
-    return stats;
+    current[parts[parts.length - 1]] = value;
 }
 
-/**
- * Gets the effective stats for a seeker-type weapon at its current level
- * @param {Object} weapon - Seeker weapon instance
- * @returns {Object} Calculated seeker stats
- */
-export function getSeekerWeaponStats(weapon) {
-    // Start with base values
-    let stats = {
-        damage: weapon.damage,
-        attackSpeed: weapon.attackSpeed,
-        projectileSpeed: weapon.projectileSpeed,
-        projectileLifetime: weapon.projectileLifetime,
-        pierce: weapon.pierce,
-        projectileCount: weapon.projectileCount,
-        spreadAngle: weapon.spreadAngle,
-        isHoming: weapon.isHoming,
-        homingStrength: weapon.homingStrength,
-        lockOnRadius: weapon.lockOnRadius,
-        projectileChar: weapon.projectileChar,
-        projectileColor: weapon.projectileColor,
-        // Calculate range from lifetime and speed
-        range: weapon.projectileSpeed * weapon.projectileLifetime
-    };
-
-    // Apply upgrades based on level
-    if (weapon.upgrades) {
-        for (const upgrade of weapon.upgrades) {
-            if (weapon.level >= upgrade.level) {
-                stats[upgrade.property] = upgrade.value;
-            }
-        }
-    }
-
-    // Recalculate range if lifetime changed via upgrade
-    stats.range = stats.projectileSpeed * stats.projectileLifetime;
-
-    return stats;
+function getNestedProperty(obj, path) {
+    return path.split('.').reduce((o, i) => o[i], obj);
 }
 
-/**
- * Gets the effective stats for a mine-type weapon at its current level
- * @param {Object} weapon - Mine weapon instance
- * @returns {Object} Calculated mine stats
- */
-export function getMineWeaponStats(weapon) {
-    // Start with base values
-    let stats = {
-        damage: weapon.damage,
-        attackSpeed: weapon.attackSpeed,
-        mineLifetime: weapon.mineLifetime,
-        armDelay: weapon.armDelay,
-        explosionRadius: weapon.explosionRadius,
-        maxActiveMines: weapon.maxActiveMines,
-        mineChar: weapon.mineChar,
-        mineColor: weapon.mineColor,
-        mineColorArmed: weapon.mineColorArmed,
-        mineColorUnarmed: weapon.mineColorUnarmed
-    };
-
-    // Apply upgrades based on level
-    if (weapon.upgrades) {
-        for (const upgrade of weapon.upgrades) {
-            if (weapon.level >= upgrade.level) {
-                stats[upgrade.property] = upgrade.value;
-            }
-        }
-    }
-
-    return stats;
+// Legacy wrapper (Deprecated)
+// We keep this temporarily so existing code doesn't crash during refactor
+export function getWeaponStats(weapon) {
+    return getEffectiveWeaponStats(weapon, {});
 }
 
-// Freeze base configs
+// Freeze configs
 Object.freeze(WEAPON_TYPES);
-Object.freeze(WEAPON_TYPES.MAGIC_WAND);
-Object.freeze(WEAPON_TYPES.MAGIC_WAND.levelBonus);
-Object.freeze(WEAPON_TYPES.DRONE);
-Object.freeze(WEAPON_TYPES.DRONE.upgrades);
-Object.freeze(WEAPON_TYPES.SCATTER);
-Object.freeze(WEAPON_TYPES.SCATTER.upgrades);
-Object.freeze(WEAPON_TYPES.SEEKER);
-Object.freeze(WEAPON_TYPES.SEEKER.upgrades);
-Object.freeze(WEAPON_TYPES.MINE);
-Object.freeze(WEAPON_TYPES.MINE.upgrades);
-
+Object.values(WEAPON_TYPES).forEach(w => {
+    Object.freeze(w);
+    Object.freeze(w.baseStats);
+    Object.freeze(w.affectedBy);
+    Object.freeze(w.upgrades);
+});

@@ -22,6 +22,7 @@ import { LevelUpUI } from './ui/LevelUpUI.js';
 import { TitleScreen } from './ui/TitleScreen.js';
 import { PauseScreen } from './ui/PauseScreen.js';
 import { GameOverScreen } from './ui/GameOverScreen.js';
+import { DebugUI } from './ui/DebugUI.js';
 import { GAME_CONFIG } from './config/GameConfig.js';
 import { createWeapon } from './config/WeaponConfig.js';
 import { EFFECT_PRESETS } from './config/EffectConfig.js';
@@ -135,14 +136,15 @@ class Game {
         /** @type {GameOverScreen} */
         this.gameOverScreen = new GameOverScreen();
 
+        /** @type {DebugUI} */
+        this.debugUI = new DebugUI(this.canvas);
+
         // Create game loop with update callback
         /** @type {GameLoop} */
         this.gameLoop = new GameLoop(this.update.bind(this));
 
-        // Debug: expose game instance to window for testing
-        if (GAME_CONFIG.DEBUG.SHOW_FPS) {
-            window.game = this;
-        }
+        // Expose game instance to window for debug UI
+        window.game = this;
 
         console.log('Breach Protocol - Initialized');
         console.log('Press SPACE to start!');
@@ -164,6 +166,7 @@ class Game {
                 }
                 // Render title screen
                 this.titleScreen.render(this.ctx, this.canvas.width, this.canvas.height);
+                this.debugUI.render(this); // Debug UI also on title
                 return; // Don't run game logic
 
             case GAME_STATE.PAUSED:
@@ -555,6 +558,9 @@ class Game {
                 } else {
                     this.drawHUD();
                 }
+
+                // Draw debug UI (always on top)
+                this.debugUI.render(this);
                 break;
         }
 
@@ -711,10 +717,12 @@ class Game {
         this.ctx.fillText(`DMG: ${Math.round(dmgMult * 100)}%`, statsX, y);
         y += lineHeight;
 
-        // Cooldown multiplier (from passives) - show as attack speed
-        const cdMult = 1 + (this.player.passiveStats?.cooldownMultiplier || 0);
-        const atkSpeedPercent = Math.round((1 / cdMult) * 100);
-        this.ctx.fillText(`CD:  ${atkSpeedPercent}%`, statsX, y);
+        // Cooldown multiplier (from passives) - show as Cooldown Reduction
+        // passiveStats.cooldownMultiplier is e.g. -0.4 (40% reduction)
+        const cdr = -(this.player.passiveStats?.cooldownMultiplier || 0);
+        const cdrPercent = Math.round(cdr * 100);
+        // Cap visual display if needed, but showing actual value is good
+        this.ctx.fillText(`CDR: ${cdrPercent}%`, statsX, y);
         y += lineHeight + 6;
 
         // Weapons header
@@ -745,6 +753,98 @@ class Game {
                     const lvlText = passive.level > 1 ? ` Lv.${passive.level}` : '';
                     this.ctx.fillText(`${config.symbol} ${config.name}${lvlText}`, statsX, y);
                     y += lineHeight;
+                }
+            }
+        }
+
+        // Inventory Slot Indicators
+        y += 10;
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.fillText('─ SLOTS ─', statsX, y);
+        y += lineHeight + 4;
+
+        const maxWeapons = GAME_CONFIG.INVENTORY.MAX_WEAPONS;
+        const maxPassives = GAME_CONFIG.INVENTORY.MAX_PASSIVES;
+        const slotSize = 14;
+        const slotGap = 3;
+
+        // Weapon slots
+        this.ctx.fillStyle = '#aaaaaa';
+        this.ctx.fillText('W:', statsX, y);
+        for (let i = 0; i < maxWeapons; i++) {
+            const slotX = statsX + 25 + i * (slotSize + slotGap);
+            const slotY = y - 2;
+
+            // Draw slot background/border
+            this.ctx.strokeStyle = '#444444';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(slotX, slotY, slotSize, slotSize);
+
+            if (i < this.player.weapons.length) {
+                const weapon = this.player.weapons[i];
+                // Resolve config to get symbol/color - weapon object should arguably have this, 
+                // but if it's dynamic we might need to look it up or ensure it's on the weapon instance.
+                // WeaponInstance usually copies from config. Let's assume weapon instance has it or we can find it.
+                // WEAPON_TYPES is not imported here.
+                // But wait, createWeapon attaches properties. 
+                // Let's assume createWeapon copies extra props or we look up by ID if needed.
+                // Actually, I just added symbol/color to the config which is used by createWeapon.
+                // But does createWeapon copy *all* props?
+                // I should verify weapon instance has 'symbol'. If not, look up in WEAPON_TYPES (need import).
+                // Or better: update createWeapon to copy it.
+                // For now, let's assume it's there or try to find it.
+                // Accessing WEAPON_TYPES is better if imported. 
+                // main.js imports createWeapon from './config/WeaponConfig.js' but not WEAPON_TYPES directly?
+                // Correction: `import { createWeapon } from ...` - line 26 defined early.
+                // I should import WEAPON_TYPES or get it from somewhere.
+                // Actually, weapon object has `id`. I can iterate WEAPON_TYPES if I had it.
+                // Easier: render whatever is on weapon, or default.
+
+                const symbol = weapon.symbol || '?';
+                const color = weapon.color || '#ffffff';
+
+                this.ctx.fillStyle = color;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                // Adjust font for small slot
+                this.ctx.font = '10px monospace';
+                this.ctx.fillText(symbol, slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+
+                // Restore font
+                this.ctx.font = GAME_CONFIG.FONTS.HUD;
+                this.ctx.textAlign = 'left';
+                this.ctx.textBaseline = 'top';
+            }
+        }
+        y += lineHeight + 2;
+
+        // Passive slots
+        this.ctx.fillStyle = '#aaaaaa';
+        this.ctx.fillText('P:', statsX, y);
+        for (let i = 0; i < maxPassives; i++) {
+            const slotX = statsX + 25 + i * (slotSize + slotGap);
+            const slotY = y - 2;
+
+            // Draw slot border
+            this.ctx.strokeStyle = '#444444';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(slotX, slotY, slotSize, slotSize);
+
+            if (i < this.player.passiveItems.length) {
+                const passive = this.player.passiveItems[i];
+                const config = getPassiveConfig(passive.id);
+
+                if (config) {
+                    this.ctx.fillStyle = config.color;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.font = '10px monospace';
+                    this.ctx.fillText(config.symbol, slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+
+                    // Restore font
+                    this.ctx.font = GAME_CONFIG.FONTS.HUD;
+                    this.ctx.textAlign = 'left';
+                    this.ctx.textBaseline = 'top';
                 }
             }
         }
