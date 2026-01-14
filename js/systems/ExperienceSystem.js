@@ -20,7 +20,7 @@ export class ExperienceSystem {
         this.onLevelUp = onLevelUp;
 
         /** @type {number} Base XP for level 1 */
-        this.baseXP = 5;
+        this.baseXP = 4;
 
         /** @type {Array} Currently shown upgrade options */
         this.currentUpgradeOptions = [];
@@ -31,13 +31,13 @@ export class ExperienceSystem {
 
     /**
      * Calculates XP required for a specific level
-     * Formula: baseXP * 1.4^level - each level requires 40% more XP
-     * Level 1: 7, Level 2: 10, Level 3: 14, Level 5: 27, Level 10: 135
+     * Formula: baseXP * 1.25^level - each level requires 25% more XP
+     * Level 1: 5, Level 2: 6, Level 5: 12, Level 10: 36
      * @param {number} level - Level to calculate XP for
      * @returns {number} XP required
      */
     xpForLevel(level) {
-        return Math.floor(this.baseXP * Math.pow(1.4, level));
+        return Math.floor(this.baseXP * Math.pow(1.25, level));
     }
 
     /**
@@ -52,10 +52,13 @@ export class ExperienceSystem {
             return false;
         }
 
-        // Update pickups (magnetic pull)
+        // Update pickups (magnetic pull) - use effective pickup radius from passives
+        const effectivePickupRadius = player.getEffectivePickupRadius ?
+            player.getEffectivePickupRadius() : player.pickupRadius;
+
         for (const pickup of pickups) {
             if (pickup.alive) {
-                pickup.update(deltaTime, player.position, player.pickupRadius);
+                pickup.update(deltaTime, player.position, effectivePickupRadius);
             }
         }
 
@@ -84,7 +87,11 @@ export class ExperienceSystem {
      * @returns {boolean} True if player leveled up
      */
     addExperience(player, amount) {
-        player.experience += amount;
+        // Apply XP multiplier from passives
+        const xpMultiplier = player.passiveStats?.xpMultiplier || 1;
+        const finalAmount = Math.floor(amount * xpMultiplier);
+
+        player.experience += finalAmount;
 
         const xpNeeded = this.xpForLevel(player.level);
 

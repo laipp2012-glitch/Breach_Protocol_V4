@@ -30,16 +30,16 @@ export const EFFECT_PRESETS = {
     ENEMY_HIT: {
         effects: ['scalePulse', 'flash'],
         scalePulse: {
-            duration: 0.1,    // Quick pulse
-            scale: 1.2        // 20% bigger
+            duration: 0.3,    // Quick pulse
+            scale: 1.3        // 20% bigger
         },
         flash: {
-            duration: 0.1,    // Quick flash
+            duration: 0.4,    // Quick flash
             color: '#FFFFFF'  // White flash
         },
         particles: {
             count: 3,         // Few particles
-            char: 'G',        // Small dot character
+            char: '*',        // Small dot character
             color: '#FF4444', // Red
             size: 10,         // Font size
             speed: [20, 50],  // Slow particles
@@ -53,16 +53,20 @@ export const EFFECT_PRESETS = {
      * Enemy death - satisfying burst
      */
     ENEMY_DEATH: {
-        effects: ['scalePulse'],
+        effects: ['scalePulse', 'flash'],
         scalePulse: {
-            duration: 0.15,
+            duration: 0.4,
             scale: 1.4
+        },
+        flash: {
+            duration: 0.3,
+            color: '#FFFFFF'
         },
         particles: {
             count: 6,           // Medium burst
             char: '*',          // Asterisk explosion
             color: '#FF0000',   // Bright red
-            size: 12,           // Medium size
+            size: 13,           // Medium size
             speed: [60, 120],   // Fast burst
             lifetime: 0.4,      // Visible but brief
             gravity: 100,       // Fall down

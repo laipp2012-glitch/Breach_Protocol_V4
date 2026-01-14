@@ -27,7 +27,7 @@ export class GameOverScreen {
         this.timer += deltaTime;
 
         // Blink every 0.6 seconds
-        if (this.timer >= 0.6) {
+        if (this.timer >= 1) {
             this.timer = 0;
             this.showPrompt = !this.showPrompt;
         }
@@ -42,7 +42,7 @@ export class GameOverScreen {
      */
     render(ctx, width, height, stats = {}) {
         // Dark background with red tint
-        ctx.fillStyle = 'rgba(20, 0, 0, 0.95)';
+        ctx.fillStyle = '#140000f2';
         ctx.fillRect(0, 0, width, height);
 
         ctx.textAlign = 'center';
@@ -59,7 +59,7 @@ export class GameOverScreen {
 
         // Stats box
         const boxY = height / 2 - 20;
-        ctx.strokeStyle = '#444444';
+        ctx.strokeStyle = '#140000f2';
         ctx.lineWidth = 2;
         ctx.strokeRect(width / 2 - 150, boxY - 40, 300, 120);
 

@@ -6,6 +6,7 @@
 
 import { GameLoop } from './core/GameLoop.js';
 import { Camera } from './core/Camera.js';
+import { GAME_STATE } from './core/GameState.js';
 import { Player } from './entities/Player.js';
 import { DamageNumber } from './entities/DamageNumber.js';
 import { InputSystem } from './systems/InputSystem.js';
@@ -18,9 +19,15 @@ import { EffectSystem } from './systems/EffectSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ASCIIRenderer } from './renderers/ASCIIRenderer.js';
 import { LevelUpUI } from './ui/LevelUpUI.js';
+import { TitleScreen } from './ui/TitleScreen.js';
+import { PauseScreen } from './ui/PauseScreen.js';
+import { GameOverScreen } from './ui/GameOverScreen.js';
+import { DebugUI } from './ui/DebugUI.js';
 import { GAME_CONFIG } from './config/GameConfig.js';
 import { createWeapon } from './config/WeaponConfig.js';
 import { EFFECT_PRESETS } from './config/EffectConfig.js';
+import { ENEMY_TYPES } from './config/EnemyConfig.js';
+import { getPassiveConfig } from './config/PassiveConfig.js';
 
 /**
  * Main game class that coordinates all systems
@@ -103,21 +110,44 @@ class Game {
             projectiles: [],
             pickups: [],
             particles: [],
-            damageNumbers: []
+            damageNumbers: [],
+            orbitDrones: [],
+            activeMines: [],
+            enemyProjectiles: []  // Projectiles fired by enemies (rangers)
         };
+
+        // Game state management
+        /** @type {string} Current game state */
+        this.currentState = GAME_STATE.TITLE;
+
+        /** @type {number} Total game time in seconds */
+        this.gameTime = 0;
+
+        /** @type {number} Total enemies killed */
+        this.killCount = 0;
+
+        // UI Screens
+        /** @type {TitleScreen} */
+        this.titleScreen = new TitleScreen();
+
+        /** @type {PauseScreen} */
+        this.pauseScreen = new PauseScreen();
+
+        /** @type {GameOverScreen} */
+        this.gameOverScreen = new GameOverScreen();
+
+        /** @type {DebugUI} */
+        this.debugUI = new DebugUI(this.canvas);
 
         // Create game loop with update callback
         /** @type {GameLoop} */
         this.gameLoop = new GameLoop(this.update.bind(this));
 
-        // Debug: expose game instance to window for testing
-        if (GAME_CONFIG.DEBUG.SHOW_FPS) {
-            window.game = this;
-        }
+        // Expose game instance to window for debug UI
+        window.game = this;
 
-        console.log('Vampire Survivors Clone - Phase 4 Initialized');
-        console.log('Controls: WASD or Arrow Keys to move');
-        console.log('Kill enemies to collect XP and level up!');
+        console.log('Breach Protocol - Initialized');
+        console.log('Press SPACE to start!');
     }
 
     /**
@@ -125,6 +155,93 @@ class Game {
      * @param {number} deltaTime - Time since last frame in seconds
      */
     update(deltaTime) {
+        // Handle different game states
+        switch (this.currentState) {
+            case GAME_STATE.TITLE:
+                this.titleScreen.update(deltaTime);
+                // Check for SPACE key to start game
+                if (this.inputSystem.isKeyPressed('Space')) {
+                    this.inputSystem.pressedKeys.delete('Space'); // Consume key
+                    this.startGame();
+                }
+                // Render title screen
+                this.titleScreen.render(this.ctx, this.canvas.width, this.canvas.height);
+                this.debugUI.render(this); // Debug UI also on title
+                return; // Don't run game logic
+
+            case GAME_STATE.PAUSED:
+                this.pauseScreen.update(deltaTime);
+                // Check for ESC to resume
+                if (this.inputSystem.isKeyPressed('Escape')) {
+                    this.inputSystem.pressedKeys.delete('Escape'); // Consume key
+                    this.resumeGame();
+                }
+                // Check for R to restart
+                if (this.inputSystem.isKeyPressed('KeyR')) {
+                    this.inputSystem.pressedKeys.delete('KeyR'); // Consume key
+                    this.restart();
+                }
+                // Render frozen game state + pause overlay
+                {
+                    const pausedRenderState = {
+                        ...this.gameState,
+                        particles: this.particleSystem.getParticles(),
+                        garlicAura: this.weaponSystem.getGarlicAura(this.player)
+                    };
+                    this.renderSystem.render(this.ctx, this.camera.getPosition(), pausedRenderState);
+                    this.drawHUD();
+                    this.pauseScreen.render(this.ctx, this.canvas.width, this.canvas.height, {
+                        level: this.player.level,
+                        time: this.gameTime
+                    });
+                }
+                return; // Don't run game logic
+
+            case GAME_STATE.GAME_OVER:
+                this.gameOverScreen.update(deltaTime);
+                // Check for R to restart run (go directly to playing)
+                if (this.inputSystem.isKeyPressed('KeyR')) {
+                    this.inputSystem.pressedKeys.delete('KeyR'); // Consume key
+                    this.restartRun();
+                }
+                // Check for SPACE to return to title
+                if (this.inputSystem.isKeyPressed('Space')) {
+                    this.inputSystem.pressedKeys.delete('Space'); // Consume key
+                    this.returnToTitle();
+                }
+                // Render death state + game over overlay
+                {
+                    const gameOverRenderState = {
+                        ...this.gameState,
+                        particles: this.particleSystem.getParticles(),
+                        garlicAura: this.weaponSystem.getGarlicAura(this.player)
+                    };
+                    this.renderSystem.render(this.ctx, this.camera.getPosition(), gameOverRenderState);
+                    this.gameOverScreen.render(this.ctx, this.canvas.width, this.canvas.height, {
+                        level: this.player.level,
+                        time: this.gameTime,
+                        kills: this.killCount
+                    });
+                }
+                return; // Don't run game logic
+
+            case GAME_STATE.PLAYING:
+                // Continue to game logic below
+                break;
+        }
+
+        // === PLAYING STATE - Game Logic ===
+
+        // Check for ESC to pause
+        if (this.inputSystem.isKeyPressed('Escape')) {
+            this.inputSystem.pressedKeys.delete('Escape'); // Consume key
+            this.pauseGame();
+            return;
+        }
+
+        // Track game time
+        this.gameTime += deltaTime;
+
         // Skip game updates during level-up (pause effect)
         if (this.experienceSystem.isLevelingUp) {
             this.renderSystem.render(this.ctx, this.camera.getPosition(), this.gameState);
@@ -143,6 +260,9 @@ class Game {
             GAME_CONFIG.WORLD.HEIGHT
         );
 
+        // 2b. Apply passive health regeneration
+        this.player.applyRegeneration(deltaTime);
+
         // 3. Update camera to follow player
         this.camera.update(this.player.position, deltaTime);
 
@@ -150,12 +270,22 @@ class Game {
         const newEnemies = this.spawnSystem.update(deltaTime, this.gameState.enemies, this.camera);
         this.gameState.enemies.push(...newEnemies);
 
-        // 4. Update enemies
+        // 4. Update enemies (pass gameState for ranger projectile firing)
         for (const enemy of this.gameState.enemies) {
             if (enemy.alive) {
-                enemy.update(deltaTime, this.player.position);
+                enemy.update(deltaTime, this.player.position, this.gameState);
             }
         }
+
+        // 4b. Update enemy projectiles (movement and expiration)
+        this.gameState.enemyProjectiles = this.gameState.enemyProjectiles.filter(proj => {
+            proj.lifetime += deltaTime;
+            proj.position.x += proj.velocity.x * deltaTime;
+            proj.position.y += proj.velocity.y * deltaTime;
+
+            // Remove if expired
+            return proj.lifetime < proj.maxLifetime;
+        });
 
         // 5. Update weapons and projectiles
         const weaponResult = this.weaponSystem.update(
@@ -165,6 +295,79 @@ class Game {
             this.gameState.projectiles
         );
         this.gameState.projectiles.push(...weaponResult.newProjectiles);
+        // Update orbit drones reference from weapon system
+        this.gameState.orbitDrones = weaponResult.orbitDrones || [];
+        // Update active mines from weapon system
+        this.gameState.activeMines = weaponResult.activeMines || [];
+
+        // 5b. Handle mine explosions (damage enemies and spawn effects)
+        for (const explosion of weaponResult.mineExplosions || []) {
+            // Damage all enemies in blast radius
+            for (const hit of explosion.affectedEnemies) {
+                hit.enemy.takeDamage(explosion.damage);
+                hit.enemy.lastDamageTaken = explosion.damage;
+
+                // Damage number (magenta for mines)
+                const dmgNum = new DamageNumber();
+                const offsetX = (Math.random() - 0.5) * 30;
+                const offsetY = -5 - Math.random() * 10;
+                dmgNum.init(
+                    hit.enemy.position.x + offsetX,
+                    hit.enemy.position.y + offsetY,
+                    Math.ceil(explosion.damage)
+                );
+                dmgNum.color = '#FF00FF'; // Magenta for mine explosion
+                this.gameState.damageNumbers.push(dmgNum);
+
+                // Apply hit effect
+                this.effectSystem.applyPreset(
+                    EFFECT_PRESETS.ENEMY_HIT,
+                    hit.enemy,
+                    this.particleSystem
+                );
+            }
+
+            // Spawn circular explosion effect - fill blast radius with particles
+            const particleCount = 40; // Number of particles in explosion
+            const radius = explosion.radius;
+
+            for (let i = 0; i < particleCount; i++) {
+                // Random position within circle (uniform distribution)
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.sqrt(Math.random()) * radius; // sqrt for uniform distribution
+                const px = explosion.position.x + Math.cos(angle) * dist;
+                const py = explosion.position.y + Math.sin(angle) * dist;
+
+                this.particleSystem.spawn(px, py, {
+                    count: 1,
+                    color: '#FF00FF',
+                    speed: [5, 20], // Very slow - mostly stationary
+                    lifetime: 0.5,
+                    spread: 360,
+                    size: 14,
+                    char: '*'
+                });
+            }
+
+            // Also spawn ring outline particles for extra effect
+            const ringCount = 20;
+            for (let i = 0; i < ringCount; i++) {
+                const angle = (i / ringCount) * Math.PI * 2;
+                const px = explosion.position.x + Math.cos(angle) * radius;
+                const py = explosion.position.y + Math.sin(angle) * radius;
+
+                this.particleSystem.spawn(px, py, {
+                    count: 1,
+                    color: '#FF88FF',
+                    speed: [30, 60],
+                    lifetime: 0.4,
+                    direction: angle * (180 / Math.PI), // Outward
+                    spread: 30,
+                    size: 12,
+                    char: '*'
+                });
+            }
+        }
 
         // 5b. Handle garlic aura hits (damage numbers + effects)
         for (const hit of weaponResult.auraHits) {
@@ -184,8 +387,30 @@ class Game {
             this.effectSystem.scalePulse(hit.enemy, 0.08, 1.1);
         }
 
-        // 6. Check collisions (includes projectile-enemy)
+        // 6. Check collisions (includes projectile-enemy and drone-enemy)
         const collisionResults = this.collisionSystem.update(this.gameState);
+
+        // 6b2. Handle drone hit effects
+        for (const hit of collisionResults.droneHits) {
+            // Damage number for drone damage (cyan tint)
+            const dmgNum = new DamageNumber();
+            const offsetX = (Math.random() - 0.5) * 30;
+            const offsetY = -5 - Math.random() * 10;
+            dmgNum.init(
+                hit.enemy.position.x + offsetX,
+                hit.enemy.position.y + offsetY,
+                Math.ceil(hit.damage)
+            );
+            dmgNum.color = '#00FFFF'; // Cyan for drone
+            this.gameState.damageNumbers.push(dmgNum);
+
+            // Apply ENEMY_HIT effects (same as projectile hits)
+            this.effectSystem.applyPreset(
+                EFFECT_PRESETS.ENEMY_HIT,
+                hit.enemy,
+                this.particleSystem
+            );
+        }
 
         // 6b. Spawn damage numbers and effects for enemies hit
         for (const enemy of collisionResults.enemiesHit) {
@@ -207,14 +432,13 @@ class Game {
                 this.particleSystem
             );
         }
+        // 7. Start death animation for newly killed enemies (health <= 0 but not yet dying)
+        const newlyKilledEnemies = this.gameState.enemies.filter(e => e.health <= 0 && !e.dying && e.alive);
+        for (const enemy of newlyKilledEnemies) {
+            // Start death animation (enemy stays visible during this)
+            enemy.startDeathAnimation();
 
-        // 7. Spawn XP pickups and death effects from dead enemies
-        const deadEnemies = this.gameState.enemies.filter(e => !e.alive);
-        for (const enemy of deadEnemies) {
-            const pickups = this.experienceSystem.spawnPickupsFromEnemy(enemy);
-            this.gameState.pickups.push(...pickups);
-
-            // Apply ENEMY_DEATH effects (particles burst)
+            // Apply ENEMY_DEATH effects (flash, scale during death)
             this.effectSystem.applyPreset(
                 EFFECT_PRESETS.ENEMY_DEATH,
                 enemy,
@@ -222,8 +446,42 @@ class Game {
             );
         }
 
-        // 8. Remove dead entities
+        // 7b. Update dying enemies and handle death completion
+        for (const enemy of this.gameState.enemies) {
+            if (enemy.dying) {
+                const deathComplete = enemy.updateDeathAnimation(deltaTime);
+
+                if (deathComplete) {
+                    // Death animation finished - spawn XP and effects
+                    const pickups = this.experienceSystem.spawnPickupsFromEnemy(enemy);
+                    this.gameState.pickups.push(...pickups);
+
+                    // Handle swarm spawn-on-death
+                    if (enemy.spawnOnDeath) {
+                        // Spawn minion enemies
+                        const minions = enemy.spawnMinions(this.gameState, ENEMY_TYPES);
+                        this.gameState.enemies.push(...minions);
+
+                        // Purple particle burst for swarm death
+                        this.particleSystem.spawn(enemy.position.x, enemy.position.y, {
+                            count: 12,
+                            color: '#9900FF',
+                            speed: [60, 120],
+                            lifetime: 0.5,
+                            spread: 360,
+                            size: 14,
+                            char: '*'
+                        });
+                    }
+                }
+            }
+        }
+
+        // 8. Remove dead entities (alive=false after death animation completes) and track kills
+        const enemyCountBefore = this.gameState.enemies.length;
         this.gameState.enemies = this.gameState.enemies.filter(e => e.alive);
+        const enemiesKilled = enemyCountBefore - this.gameState.enemies.length;
+        this.killCount += enemiesKilled;
         this.gameState.projectiles = this.gameState.projectiles.filter(p => p.alive);
 
         // 9. Update XP/pickups (handles collection and level-up)
@@ -242,22 +500,68 @@ class Game {
 
         // 10. Check game over
         if (!this.player.isAlive()) {
-            this.handleGameOver();
+            this.currentState = GAME_STATE.GAME_OVER;
+            console.log('Game Over!');
         }
 
-        // 11. Render everything (include particles and garlic aura in gameState for rendering)
-        const renderState = {
-            ...this.gameState,
-            particles: this.particleSystem.getParticles(),
-            garlicAura: this.weaponSystem.getGarlicAura(this.player)
-        };
-        this.renderSystem.render(this.ctx, this.camera.getPosition(), renderState);
+        // 11. Render based on current state
+        switch (this.currentState) {
+            case GAME_STATE.TITLE:
+                this.titleScreen.render(this.ctx, this.canvas.width, this.canvas.height);
+                break;
 
-        // 12. Draw HUD (or level-up UI if leveling)
-        if (this.experienceSystem.isLevelingUp) {
-            this.levelUpUI.render();
-        } else {
-            this.drawHUD();
+            case GAME_STATE.PAUSED:
+                // Render game first (frozen state)
+                const pausedRenderState = {
+                    ...this.gameState,
+                    particles: this.particleSystem.getParticles(),
+                    garlicAura: this.weaponSystem.getGarlicAura(this.player)
+                };
+                this.renderSystem.render(this.ctx, this.camera.getPosition(), pausedRenderState);
+                this.drawHUD();
+                // Then overlay pause screen
+                this.pauseScreen.render(this.ctx, this.canvas.width, this.canvas.height, {
+                    level: this.player.level,
+                    time: this.gameTime
+                });
+                break;
+
+            case GAME_STATE.GAME_OVER:
+                // Render game first (death state)
+                const gameOverRenderState = {
+                    ...this.gameState,
+                    particles: this.particleSystem.getParticles(),
+                    garlicAura: this.weaponSystem.getGarlicAura(this.player)
+                };
+                this.renderSystem.render(this.ctx, this.camera.getPosition(), gameOverRenderState);
+                // Then overlay game over screen
+                this.gameOverScreen.render(this.ctx, this.canvas.width, this.canvas.height, {
+                    level: this.player.level,
+                    time: this.gameTime,
+                    kills: this.killCount
+                });
+                break;
+
+            case GAME_STATE.PLAYING:
+            default:
+                // Normal gameplay rendering
+                const renderState = {
+                    ...this.gameState,
+                    particles: this.particleSystem.getParticles(),
+                    garlicAura: this.weaponSystem.getGarlicAura(this.player)
+                };
+                this.renderSystem.render(this.ctx, this.camera.getPosition(), renderState);
+
+                // Draw HUD or level-up UI
+                if (this.experienceSystem.isLevelingUp) {
+                    this.levelUpUI.render();
+                } else {
+                    this.drawHUD();
+                }
+
+                // Draw debug UI (always on top)
+                this.debugUI.render(this);
+                break;
         }
 
         // 13. Draw debug info if enabled
@@ -320,11 +624,12 @@ class Game {
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-        // Health text
+        // Health text (show effective max health with passive bonuses)
+        const effectiveMaxHealth = this.player.getEffectiveMaxHealth();
         this.ctx.fillStyle = '#ffffff';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(
-            `HP: ${Math.ceil(this.player.health)}/${this.player.maxHealth}`,
+            `HP: ${Math.ceil(this.player.health)}/${effectiveMaxHealth}`,
             this.canvas.width / 2,
             barY + barHeight + 4
         );
@@ -353,6 +658,17 @@ class Game {
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`Lv.${this.player.level}`, barX + barWidth + 10, xpBarY + 2);
 
+        // Kill count and Time (bottom left)
+        this.ctx.font = '14px monospace';
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.textAlign = 'left';
+        const minutes = Math.floor(this.gameTime / 60);
+        const seconds = Math.floor(this.gameTime % 60);
+        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        this.ctx.fillText(`Time: ${timeStr}`, 15, this.canvas.height - 35);
+        this.ctx.fillStyle = '#ff6666';
+        this.ctx.fillText(`Kills: ${this.killCount}`, 15, this.canvas.height - 18);
+
         // Player Stats Panel (right side)
         this.drawPlayerStats();
 
@@ -376,30 +692,37 @@ class Game {
         this.ctx.fillStyle = '#ffff00';
         this.ctx.fillText('─ STATS ─', statsX, statsY);
 
-        // Core stats
+        // Core stats (using passive-enhanced values)
         this.ctx.fillStyle = '#aaaaaa';
         let y = statsY + lineHeight + 4;
 
-        // Speed
-        this.ctx.fillText(`SPD: ${this.player.speed}`, statsX, y);
+        // Speed (with passive multiplier)
+        const speedMult = this.player.passiveStats?.speedMultiplier || 1;
+        const effectiveSpeed = Math.round(this.player.baseSpeed * speedMult);
+        this.ctx.fillText(`SPD: ${effectiveSpeed}`, statsX, y);
         y += lineHeight;
 
-        // Max Health
-        this.ctx.fillText(`HP:  ${this.player.maxHealth}`, statsX, y);
+        // Max Health (with passive bonus)
+        const effectiveMaxHealth = this.player.getEffectiveMaxHealth();
+        this.ctx.fillText(`HP:  ${effectiveMaxHealth}`, statsX, y);
         y += lineHeight;
 
-        // Pickup radius
-        this.ctx.fillText(`MAG: ${this.player.pickupRadius}`, statsX, y);
+        // Pickup radius (with passive bonus)
+        const effectivePickup = this.player.getEffectivePickupRadius();
+        this.ctx.fillText(`MAG: ${effectivePickup}`, statsX, y);
         y += lineHeight;
 
-        // Damage multiplier
-        const dmgMult = this.player.damageMultiplier || 1;
+        // Damage multiplier (from passives)
+        const dmgMult = this.player.passiveStats?.damageMultiplier || 1;
         this.ctx.fillText(`DMG: ${Math.round(dmgMult * 100)}%`, statsX, y);
         y += lineHeight;
 
-        // Attack speed multiplier
-        const atkMult = this.player.attackSpeedMultiplier || 1;
-        this.ctx.fillText(`ATK: ${Math.round(atkMult * 100)}%`, statsX, y);
+        // Cooldown multiplier (from passives) - show as Cooldown Reduction
+        // passiveStats.cooldownMultiplier is e.g. -0.4 (40% reduction)
+        const cdr = -(this.player.passiveStats?.cooldownMultiplier || 0);
+        const cdrPercent = Math.round(cdr * 100);
+        // Cap visual display if needed, but showing actual value is good
+        this.ctx.fillText(`CDR: ${cdrPercent}%`, statsX, y);
         y += lineHeight + 6;
 
         // Weapons header
@@ -413,6 +736,117 @@ class Game {
             const lvlText = weapon.level > 1 ? ` Lv.${weapon.level}` : '';
             this.ctx.fillText(`${weapon.name}${lvlText}`, statsX, y);
             y += lineHeight;
+        }
+
+        // Passives header (if player has any)
+        if (this.player.passiveItems.length > 0) {
+            y += 6;
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.fillText('─ PASSIVES ─', statsX, y);
+            y += lineHeight + 4;
+
+            // List passives with their symbols
+            for (const passive of this.player.passiveItems) {
+                const config = getPassiveConfig(passive.id);
+                if (config) {
+                    this.ctx.fillStyle = config.color;
+                    const lvlText = passive.level > 1 ? ` Lv.${passive.level}` : '';
+                    this.ctx.fillText(`${config.symbol} ${config.name}${lvlText}`, statsX, y);
+                    y += lineHeight;
+                }
+            }
+        }
+
+        // Inventory Slot Indicators
+        y += 10;
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.fillText('─ SLOTS ─', statsX, y);
+        y += lineHeight + 4;
+
+        const maxWeapons = GAME_CONFIG.INVENTORY.MAX_WEAPONS;
+        const maxPassives = GAME_CONFIG.INVENTORY.MAX_PASSIVES;
+        const slotSize = 14;
+        const slotGap = 3;
+
+        // Weapon slots
+        this.ctx.fillStyle = '#aaaaaa';
+        this.ctx.fillText('W:', statsX, y);
+        for (let i = 0; i < maxWeapons; i++) {
+            const slotX = statsX + 25 + i * (slotSize + slotGap);
+            const slotY = y - 2;
+
+            // Draw slot background/border
+            this.ctx.strokeStyle = '#444444';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(slotX, slotY, slotSize, slotSize);
+
+            if (i < this.player.weapons.length) {
+                const weapon = this.player.weapons[i];
+                // Resolve config to get symbol/color - weapon object should arguably have this, 
+                // but if it's dynamic we might need to look it up or ensure it's on the weapon instance.
+                // WeaponInstance usually copies from config. Let's assume weapon instance has it or we can find it.
+                // WEAPON_TYPES is not imported here.
+                // But wait, createWeapon attaches properties. 
+                // Let's assume createWeapon copies extra props or we look up by ID if needed.
+                // Actually, I just added symbol/color to the config which is used by createWeapon.
+                // But does createWeapon copy *all* props?
+                // I should verify weapon instance has 'symbol'. If not, look up in WEAPON_TYPES (need import).
+                // Or better: update createWeapon to copy it.
+                // For now, let's assume it's there or try to find it.
+                // Accessing WEAPON_TYPES is better if imported. 
+                // main.js imports createWeapon from './config/WeaponConfig.js' but not WEAPON_TYPES directly?
+                // Correction: `import { createWeapon } from ...` - line 26 defined early.
+                // I should import WEAPON_TYPES or get it from somewhere.
+                // Actually, weapon object has `id`. I can iterate WEAPON_TYPES if I had it.
+                // Easier: render whatever is on weapon, or default.
+
+                const symbol = weapon.symbol || '?';
+                const color = weapon.color || '#ffffff';
+
+                this.ctx.fillStyle = color;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                // Adjust font for small slot
+                this.ctx.font = '10px monospace';
+                this.ctx.fillText(symbol, slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+
+                // Restore font
+                this.ctx.font = GAME_CONFIG.FONTS.HUD;
+                this.ctx.textAlign = 'left';
+                this.ctx.textBaseline = 'top';
+            }
+        }
+        y += lineHeight + 2;
+
+        // Passive slots
+        this.ctx.fillStyle = '#aaaaaa';
+        this.ctx.fillText('P:', statsX, y);
+        for (let i = 0; i < maxPassives; i++) {
+            const slotX = statsX + 25 + i * (slotSize + slotGap);
+            const slotY = y - 2;
+
+            // Draw slot border
+            this.ctx.strokeStyle = '#444444';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(slotX, slotY, slotSize, slotSize);
+
+            if (i < this.player.passiveItems.length) {
+                const passive = this.player.passiveItems[i];
+                const config = getPassiveConfig(passive.id);
+
+                if (config) {
+                    this.ctx.fillStyle = config.color;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.font = '10px monospace';
+                    this.ctx.fillText(config.symbol, slotX + slotSize / 2, slotY + slotSize / 2 + 1);
+
+                    // Restore font
+                    this.ctx.font = GAME_CONFIG.FONTS.HUD;
+                    this.ctx.textAlign = 'left';
+                    this.ctx.textBaseline = 'top';
+                }
+            }
         }
     }
 
@@ -499,20 +933,89 @@ class Game {
         this.gameState.pickups = [];
         this.gameState.particles = [];
         this.gameState.damageNumbers = [];
+        this.gameState.orbitDrones = [];
+        this.gameState.activeMines = [];
+        this.gameState.enemyProjectiles = [];
 
         // Reset systems
         this.spawnSystem.reset();
         this.experienceSystem.isLevelingUp = false;
         this.effectSystem.clear();
         this.particleSystem.clear();
+        // Clear weapon system drones and mines
+        this.weaponSystem.orbitDrones = [];
+        this.weaponSystem.activeMines = [];
+        this.weaponSystem.lastDroneCount = 0;
+        this.weaponSystem.lastDroneLevel = 0;
 
         // Reset camera to center on player
         this.camera.centerOn(this.player.position);
 
+        // Reset game metrics
+        this.gameTime = 0;
+        this.killCount = 0;
+
+        // Return to title screen
+        this.currentState = GAME_STATE.TITLE;
+        this.titleScreen = new TitleScreen();
+
         // Resume game loop
         this.gameLoop.resume();
 
-        console.log('Game restarted!');
+        console.log('Game restarted - returning to title screen');
+    }
+
+    /**
+     * Restarts the run and goes directly to playing (used from game over)
+     */
+    restartRun() {
+        // Call restart to reset everything
+        this.restart();
+        // But then immediately start playing
+        this.currentState = GAME_STATE.PLAYING;
+        this.gameTime = 0;
+        this.killCount = 0;
+        console.log('Run restarted - playing immediately!');
+    }
+
+    /**
+     * Starts the game from title screen
+     */
+    startGame() {
+        this.currentState = GAME_STATE.PLAYING;
+        // Reset stats
+        this.gameTime = 0;
+        this.killCount = 0;
+        console.log('Game started!');
+    }
+
+    /**
+     * Pauses the game (from PLAYING to PAUSED)
+     */
+    pauseGame() {
+        if (this.currentState === GAME_STATE.PLAYING) {
+            this.currentState = GAME_STATE.PAUSED;
+            console.log('Game paused');
+        }
+    }
+
+    /**
+     * Resumes the game (from PAUSED to PLAYING)
+     */
+    resumeGame() {
+        if (this.currentState === GAME_STATE.PAUSED) {
+            this.currentState = GAME_STATE.PLAYING;
+            console.log('Game resumed');
+        }
+    }
+
+    /**
+     * Returns to title screen (with full game reset)
+     */
+    returnToTitle() {
+        // Call restart which resets everything and goes to title
+        this.restart();
+        console.log('Returned to title');
     }
 
     /**
@@ -520,7 +1023,7 @@ class Game {
      */
     start() {
         this.gameLoop.start();
-        console.log('Game started!');
+        console.log('Game loop started!');
     }
 
     /**
@@ -533,14 +1036,14 @@ class Game {
     }
 
     /**
-     * Pauses the game
+     * Pauses the game loop
      */
     pause() {
         this.gameLoop.pause();
     }
 
     /**
-     * Resumes the game
+     * Resumes the game loop
      */
     resume() {
         this.gameLoop.resume();
