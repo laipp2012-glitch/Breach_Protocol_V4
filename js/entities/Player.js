@@ -277,10 +277,11 @@ export class Player {
 
         // Apply specific upgrade effect for this level
         if (weapon.upgrades) {
-            const upgrade = weapon.upgrades.find(u => u.level === weapon.level);
-            if (upgrade) {
+            // Find ALL upgrades for this level (support multiple prop changes)
+            const upgrades = weapon.upgrades.filter(u => u.level === weapon.level);
+            upgrades.forEach(upgrade => {
                 applyUpgrade(weapon, upgrade);
-            }
+            });
         }
 
         return true;

@@ -58,16 +58,16 @@ export const WEAPON_TYPES = {
             duration: false,
             amount: true
         },
-        maxLevel: 8,
-        // Unrolled legacy levelBonus: damage+3, speed+0.1 (attacks/sec equivalent hard to map linearly to cooldown, doing best effort), amount+1 at 3,5,7
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 13, operation: 'set' },
-            { level: 3, description: '+Amount', property: 'baseStats.amount', value: 2, operation: 'set' },
-            { level: 4, description: '+Damage', property: 'baseStats.damage', value: 16, operation: 'set' },
-            { level: 5, description: '+Amount', property: 'baseStats.amount', value: 3, operation: 'set' },
-            { level: 6, description: '+Damage', property: 'baseStats.damage', value: 19, operation: 'set' },
-            { level: 7, description: '+Amount', property: 'baseStats.amount', value: 4, operation: 'set' },
-            { level: 8, description: '+Damage, -Cooldown', property: 'baseStats.damage', value: 22, operation: 'set' }
+            { level: 2, description: '+Damage, +Amount', property: 'baseStats.damage', value: 5, operation: 'set' },
+            { level: 2, description: '', property: 'baseStats.amount', value: 2, operation: 'set' },
+
+            { level: 3, description: '+Damage, +Amount', property: 'baseStats.damage', value: 9, operation: 'set' },
+            { level: 3, description: '', property: 'baseStats.amount', value: 3, operation: 'set' },
+
+            { level: 4, description: 'MAX Power', property: 'baseStats.damage', value: 15, operation: 'set' },
+            { level: 4, description: '', property: 'baseStats.amount', value: 4, operation: 'set' }
         ]
     },
 
@@ -82,7 +82,7 @@ export const WEAPON_TYPES = {
         description: 'Throws fast knives in the direction you are moving',
         type: 'projectile_directional',
         baseStats: {
-            damage: 4,
+            damage: 3,
             cooldown: 2.0,   // approx 1.5 attacks/sec
             area: 300,        // Range
             size: 1.0,
@@ -99,15 +99,17 @@ export const WEAPON_TYPES = {
             duration: false,
             amount: true
         },
-        maxLevel: 8,
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+Amount', property: 'baseStats.amount', value: 2, operation: 'set' },
-            { level: 3, description: '-Cooldown', property: 'baseStats.cooldown', value: 0.6, operation: 'set' },
-            { level: 4, description: '+Damage', property: 'baseStats.damage', value: 12, operation: 'set' },
-            { level: 5, description: '+Pierce', property: 'baseStats.pierce', value: 2, operation: 'set' },
-            { level: 6, description: '+Amount', property: 'baseStats.amount', value: 3, operation: 'set' },
-            { level: 7, description: '+Damage', property: 'baseStats.damage', value: 16, operation: 'set' },
-            { level: 8, description: '+Pierce', property: 'baseStats.pierce', value: 3, operation: 'set' }
+            { level: 2, description: '+Amount, -Cooldown', property: 'baseStats.amount', value: 2, operation: 'set' },
+            { level: 2, description: '', property: 'baseStats.cooldown', value: 0.6, operation: 'set' },
+
+            { level: 3, description: '+Damage, +Pierce', property: 'baseStats.damage', value: 7, operation: 'set' },
+            { level: 3, description: '', property: 'baseStats.pierce', value: 2, operation: 'set' },
+
+            { level: 4, description: 'MAX Power', property: 'baseStats.amount', value: 3, operation: 'set' },
+            { level: 4, description: '', property: 'baseStats.damage', value: 12, operation: 'set' },
+            { level: 4, description: '', property: 'baseStats.pierce', value: 3, operation: 'set' }
         ]
     },
 
@@ -139,15 +141,12 @@ export const WEAPON_TYPES = {
             duration: false,
             amount: false
         },
-        maxLevel: 8,
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 5, operation: 'set' },
-            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 7, operation: 'set' },
-            { level: 4, description: '+Damage', property: 'baseStats.damage', value: 9, operation: 'set' },
-            { level: 5, description: '+Damage', property: 'baseStats.damage', value: 11, operation: 'set' },
-            { level: 6, description: '+Damage', property: 'baseStats.damage', value: 12, operation: 'set' },
-            { level: 7, description: '+Area', property: 'baseStats.area', value: 80, operation: 'set' },
-            { level: 8, description: '+Area', property: 'baseStats.area', value: 100, operation: 'set' }
+            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 7, operation: 'set' },
+            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 11, operation: 'set' },
+            { level: 4, description: 'MAX Power', property: 'baseStats.damage', value: 12, operation: 'set' },
+            { level: 4, description: '', property: 'baseStats.area', value: 100, operation: 'set' }
         ]
     },
 
@@ -181,12 +180,14 @@ export const WEAPON_TYPES = {
             duration: false,
             amount: true
         },
-        maxLevel: 5,
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+1 Drone', property: 'baseStats.amount', value: 3, operation: 'set' },
-            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 20, operation: 'set' },
-            { level: 4, description: '+1 Drone', property: 'baseStats.amount', value: 4, operation: 'set' },
-            { level: 5, description: '+Speed', property: 'baseStats.speed', value: 240, operation: 'set' }
+            { level: 2, description: '+1 Drone, +Damage', property: 'baseStats.amount', value: 3, operation: 'set' },
+            { level: 2, description: '', property: 'baseStats.damage', value: 20, operation: 'set' },
+
+            { level: 3, description: '+1 Drone', property: 'baseStats.amount', value: 4, operation: 'set' },
+
+            { level: 4, description: 'MAX Speed', property: 'baseStats.speed', value: 240, operation: 'set' }
         ]
     },
 
@@ -201,7 +202,7 @@ export const WEAPON_TYPES = {
         description: 'Fires a spread of short-range projectiles',
         type: 'projectile_spread',
         baseStats: {
-            damage: 3,
+            damage: 2,
             cooldown: 1.0,   // 1.2 attacks/sec
             area: 300,        // Range (projectile lifetime distance)
             size: 1.0,
@@ -221,12 +222,15 @@ export const WEAPON_TYPES = {
             duration: true,
             amount: true
         },
-        maxLevel: 5,
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+Amount', property: 'baseStats.amount', value: 7, operation: 'set' },
-            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 18, operation: 'set' },
-            { level: 4, description: '+Spread', property: 'baseStats.spreadAngle', value: 60, operation: 'set' },
-            { level: 5, description: '+Pierce', property: 'baseStats.pierce', value: 1, operation: 'set' }
+            { level: 2, description: '+Amount, +Damage', property: 'baseStats.amount', value: 7, operation: 'set' },
+            { level: 2, description: '', property: 'baseStats.damage', value: 4, operation: 'set' },
+
+            { level: 3, description: '+Spread', property: 'baseStats.spreadAngle', value: 60, operation: 'set' },
+
+            { level: 4, description: 'MAX Pierce', property: 'baseStats.pierce', value: 1, operation: 'set' },
+            { level: 4, description: '', property: 'baseStats.damage', value: 6, operation: 'set' }
         ]
     },
 
@@ -241,7 +245,7 @@ export const WEAPON_TYPES = {
         description: 'Fires homing missiles that chase enemies',
         type: 'projectile_homing',
         baseStats: {
-            damage: 3,
+            damage: 2,
             cooldown: 0.66,
             area: 400,        // Range (target acquisition / projectile lifetime)
             size: 1.0,
@@ -262,12 +266,15 @@ export const WEAPON_TYPES = {
             duration: true,
             amount: true
         },
-        maxLevel: 5,
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+Amount', property: 'baseStats.amount', value: 4, operation: 'set' },
-            { level: 3, description: '+Damage', property: 'baseStats.damage', value: 30, operation: 'set' },
-            { level: 4, description: '+Homing', property: 'baseStats.homingStrength', value: 270, operation: 'set' },
-            { level: 5, description: '+Amount', property: 'baseStats.amount', value: 5, operation: 'set' }
+            { level: 2, description: '+Amount, +Damage', property: 'baseStats.amount', value: 4, operation: 'set' },
+            { level: 2, description: '', property: 'baseStats.damage', value: 4, operation: 'set' },
+
+            { level: 3, description: '+Homing', property: 'baseStats.homingStrength', value: 270, operation: 'set' },
+
+            { level: 4, description: 'MAX Swarm', property: 'baseStats.amount', value: 5, operation: 'set' },
+            { level: 4, description: '', property: 'baseStats.damage', value: 6, operation: 'set' }
         ]
     },
 
@@ -283,7 +290,7 @@ export const WEAPON_TYPES = {
         type: 'deployable',
         baseStats: {
             damage: 11,
-            cooldown: 2.0,
+            cooldown: 3.0,
             area: 60,         // Explosion Radius
             size: 1.0,        // Visual scale
             speed: 0,
@@ -291,7 +298,7 @@ export const WEAPON_TYPES = {
             amount: 1,        // Mines deployed per cycle
             pierce: 999,
             maxActiveMines: 10,
-            armDelay: 0.3,
+            armDelay: 0.4,
             mineChar: '*',
             mineColor: '#FF00FF',
             mineColorArmed: '#FF00FF',
@@ -305,12 +312,14 @@ export const WEAPON_TYPES = {
             duration: true,
             amount: false     // Amount bonus usually doesn't affect mine count per drop, but could?
         },
-        maxLevel: 5,
+        maxLevel: 4,
         upgrades: [
-            { level: 2, description: '+Damage', property: 'baseStats.damage', value: 60, operation: 'set' },
-            { level: 3, description: '+Radius', property: 'baseStats.area', value: 80, operation: 'set' },
-            { level: 4, description: '+MaxMines', property: 'baseStats.maxActiveMines', value: 15, operation: 'set' },
-            { level: 5, description: '+Duration', property: 'baseStats.duration', value: 12, operation: 'set' }
+            { level: 2, description: '+Damage, +Radius', property: 'baseStats.damage', value: 15, operation: 'set' },
+            { level: 2, description: '', property: 'baseStats.area', value: 70, operation: 'set' },
+
+            { level: 3, description: '+MaxMines', property: 'baseStats.maxActiveMines', value: 15, operation: 'set' },
+
+            { level: 4, description: 'MAX Duration', property: 'baseStats.duration', value: 12, operation: 'set' }
         ]
     }
 };
@@ -354,10 +363,7 @@ export function getEffectiveWeaponStats(weapon, passiveStats = {}) {
 
     // Cooldown
     // Formula: Base * (1 - Reduction). 
-    // passiveStats.cooldownMultiplier is summation of reductions (negative values expected from config? 
-    // Wait, Player.js sums them. Config has -0.08. 
-    // So passiveStats.cooldownMultiplier will be e.g. -0.4.
-    // So we want: Base * (1 + (-0.4)) = Base * 0.6.
+    // passiveStats.cooldownMultiplier is a negative value (e.g. -0.4 for 40% reduction).
     if (flags.cooldown && passiveStats.cooldownMultiplier) {
         // Clamp minimum cooldown to 0.1s to prevent infinite fire
         stats.cooldown = Math.max(0.1, stats.cooldown * (1 + passiveStats.cooldownMultiplier));
@@ -365,11 +371,7 @@ export function getEffectiveWeaponStats(weapon, passiveStats = {}) {
 
     // Speed (Projectile / Orbit)
     if (flags.speed && passiveStats.speedMultiplier) {
-        // NOTE: Usually speedMultiplier is for Player Speed (Wings).
-        // If we want a separate Projectile Speed passive, we need a separate stat.
-        // For now, if config says speed: true, we use the global speedMultiplier.
-        // This makes Wings affect Projectile Speed if flag is true.
-        // User requirements might vary, but based on schema this is the link.
+        // Use global speed multiplier (Wings) if weapon is affected by speed
         stats.speed *= passiveStats.speedMultiplier;
     }
 

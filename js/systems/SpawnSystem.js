@@ -6,7 +6,7 @@
  */
 
 import { Enemy } from '../entities/Enemy.js';
-import { getRandomEnemyType } from '../config/EnemyConfig.js';
+import { getRandomEnemyType, ENEMY_TYPES } from '../config/EnemyConfig.js';
 import { GAME_CONFIG } from '../config/GameConfig.js';
 
 /**
@@ -14,7 +14,7 @@ import { GAME_CONFIG } from '../config/GameConfig.js';
  * @enum {number}
  */
 const SPAWN_EDGE = {
-    TOP: 0,
+    TOP: 1,
     RIGHT: 1,
     BOTTOM: 2,
     LEFT: 3
@@ -146,17 +146,21 @@ export class SpawnSystem {
      * @returns {{interval: number, size: number, minDirections: number, maxDirections: number}}
      */
     getWaveParameters(gameTime) {
-        const waves = GAME_CONFIG.SPAWN.WAVES;
-
-        // Find the matching wave config for current time
-        const config = waves.find(w => gameTime < w.TIME_LIMIT) || waves[waves.length - 1];
-
-        return {
-            interval: config.INTERVAL,
-            size: config.SIZE,
-            minDirections: config.MIN_DIRS,
-            maxDirections: config.MAX_DIRS
-        };
+        if (gameTime < 150) { // 0-2:30 (Early)
+            return {
+                interval: 10,  // Faster waves (was 15)
+                size: 15,      // More enemies (was 10)
+                minDirections: 2,
+                maxDirections: 2
+            };
+        } else { // 2:30+ (Late)
+            return {
+                interval: 8,   // Faster waves (was 12)
+                size: 20,      // More enemies (was 15)
+                minDirections: 3,
+                maxDirections: 3
+            };
+        }
     }
 
     /**
@@ -357,19 +361,18 @@ export class SpawnSystem {
      * @returns {Array<string>} Array of allowed enemy IDs
      */
     getAvailableEnemyTypes(gameTime) {
-        // Always available
-        const types = ['basic', 'fast'];
+        const types = ['basic']; // Always available
 
-        // Unlock Ranger at 2:00 (120s)
-        if (gameTime >= 120) types.push('ranger');
+        if (gameTime >= 90) types.push('fast');    // 1:30
+        if (gameTime >= 180) types.push('ranger'); // 3:00
 
-        // Unlock Tank at 4:00 (240s)
-        if (gameTime >= 240) types.push('tank');
+        // Tank and Swarm disabled
 
-        // Unlock Swarm at 7:00 (420s)
-        if (gameTime >= 420) types.push('swarm');
-
-        return types;
+        return types.filter(typeId => {
+            // Find config by ID since keys might not match ID directly (e.g. casing)
+            const enemyConfig = Object.values(ENEMY_TYPES).find(t => t.id === typeId);
+            return enemyConfig && enemyConfig.enabled !== false;
+        });
     }
 
     /**

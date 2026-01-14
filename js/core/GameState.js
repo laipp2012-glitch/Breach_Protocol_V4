@@ -10,6 +10,12 @@
  * @enum {string}
  */
 export const GAME_STATE = {
+    /** Profile creation - first time setup */
+    PROFILE_CREATION: 'profile_creation',
+
+    /** Hub menu - central navigation */
+    HUB: 'hub',
+
     /** Title screen - waiting for player to start */
     TITLE: 'title',
 
@@ -18,6 +24,9 @@ export const GAME_STATE = {
 
     /** Game is paused */
     PAUSED: 'paused',
+
+    /** Showing rewards/results screen */
+    REWARDS: 'rewards',
 
     /** Player has died */
     GAME_OVER: 'gameover'

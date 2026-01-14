@@ -37,7 +37,7 @@ export class ExperienceSystem {
      * @returns {number} XP required
      */
     xpForLevel(level) {
-        return Math.floor(this.baseXP * Math.pow(1.25, level));
+        return Math.floor(6 * Math.pow(1.3, level));
     }
 
     /**

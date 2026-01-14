@@ -29,11 +29,12 @@ export const ENEMY_TYPES = {
         id: 'basic',
         name: 'Basic',
         health: 10,
-        speed: 70,
+        speed: 50,
         damage: 5,
         xpValue: 1,
         radius: 12,
-        spawnWeight: 100
+        spawnWeight: 100,
+        enabled: true
     },
 
     /**
@@ -48,7 +49,8 @@ export const ENEMY_TYPES = {
         damage: 15,
         xpValue: 5,
         radius: 18,
-        spawnWeight: 20
+        spawnWeight: 20,
+        enabled: false
     },
 
     /**
@@ -59,11 +61,12 @@ export const ENEMY_TYPES = {
         id: 'fast',
         name: 'Fast',
         health: 5,
-        speed: 90,
+        speed: 70,
         damage: 3,
         xpValue: 2,
         radius: 10,
-        spawnWeight: 40
+        spawnWeight: 40,
+        enabled: true
     },
 
     /**
@@ -74,11 +77,12 @@ export const ENEMY_TYPES = {
         id: 'ranger',
         name: 'Ranger',
         health: 8,
-        speed: 60,
+        speed: 50,
         damage: 5,          // Contact damage if player touches
         xpValue: 4,
         radius: 12,
         spawnWeight: 30,
+        enabled: true,
 
         // Ranger-specific AI properties
         preferredDistance: 180,    // Stay this far from player
@@ -107,6 +111,7 @@ export const ENEMY_TYPES = {
         xpValue: 3,
         radius: 14,
         spawnWeight: 15,
+        enabled: false,
 
         // Swarm-specific spawning properties
         spawnOnDeath: true,

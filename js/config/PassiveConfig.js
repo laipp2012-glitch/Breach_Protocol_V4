@@ -19,14 +19,12 @@ export const PassiveConfig = {
         symbol: '+',
         color: '#FF0000',
         description: 'Increases damage for all weapons',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'common',
         effects: [
-            { level: 1, damageMultiplier: 0.10 },  // +10% per level
-            { level: 2, damageMultiplier: 0.20 },
-            { level: 3, damageMultiplier: 0.30 },
-            { level: 4, damageMultiplier: 0.40 },
-            { level: 5, damageMultiplier: 0.50 }
+            { level: 1, damageMultiplier: 0.15 },
+            { level: 2, damageMultiplier: 0.30 },
+            { level: 3, damageMultiplier: 0.50 }
         ]
     },
 
@@ -39,14 +37,12 @@ export const PassiveConfig = {
         symbol: '^',
         color: '#00FFFF',
         description: 'Increases movement speed',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'common',
         effects: [
-            { level: 1, speedMultiplier: 0.10 },
-            { level: 2, speedMultiplier: 0.20 },
-            { level: 3, speedMultiplier: 0.30 },
-            { level: 4, speedMultiplier: 0.40 },
-            { level: 5, speedMultiplier: 0.50 }
+            { level: 1, speedMultiplier: 0.15 },
+            { level: 2, speedMultiplier: 0.30 },
+            { level: 3, speedMultiplier: 0.50 }
         ]
     },
 
@@ -59,14 +55,12 @@ export const PassiveConfig = {
         symbol: 'U',
         color: '#FFFF00',
         description: 'Increases pickup radius',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'common',
         effects: [
-            { level: 1, pickupRadiusBonus: 20 },  // Flat bonus in pixels
-            { level: 2, pickupRadiusBonus: 40 },
-            { level: 3, pickupRadiusBonus: 60 },
-            { level: 4, pickupRadiusBonus: 80 },
-            { level: 5, pickupRadiusBonus: 100 }
+            { level: 1, pickupRadiusBonus: 30 },
+            { level: 2, pickupRadiusBonus: 60 },
+            { level: 3, pickupRadiusBonus: 100 }
         ]
     },
 
@@ -79,14 +73,12 @@ export const PassiveConfig = {
         symbol: 'H',
         color: '#00FF00',
         description: 'Increases max health',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'common',
         effects: [
-            { level: 1, maxHealthBonus: 20 },  // Flat bonus
-            { level: 2, maxHealthBonus: 40 },
-            { level: 3, maxHealthBonus: 60 },
-            { level: 4, maxHealthBonus: 80 },
-            { level: 5, maxHealthBonus: 100 }
+            { level: 1, maxHealthBonus: 30 },
+            { level: 2, maxHealthBonus: 60 },
+            { level: 3, maxHealthBonus: 100 }
         ]
     },
 
@@ -99,14 +91,12 @@ export const PassiveConfig = {
         symbol: 'C',
         color: '#0088FF',
         description: 'Reduces weapon cooldowns',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'common',
         effects: [
-            { level: 1, cooldownMultiplier: -0.08 },  // -8% per level
-            { level: 2, cooldownMultiplier: -0.16 },
-            { level: 3, cooldownMultiplier: -0.24 },
-            { level: 4, cooldownMultiplier: -0.32 },
-            { level: 5, cooldownMultiplier: -0.40 }
+            { level: 1, cooldownMultiplier: -0.12 },
+            { level: 2, cooldownMultiplier: -0.24 },
+            { level: 3, cooldownMultiplier: -0.40 }
         ]
     },
 
@@ -119,14 +109,12 @@ export const PassiveConfig = {
         symbol: '#',
         color: '#888888',
         description: 'Reduces damage taken',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'uncommon',
         effects: [
-            { level: 1, damageReduction: 1 },  // Flat reduction per hit
-            { level: 2, damageReduction: 2 },
-            { level: 3, damageReduction: 3 },
-            { level: 4, damageReduction: 4 },
-            { level: 5, damageReduction: 5 }
+            { level: 1, damageReduction: 1 },
+            { level: 2, damageReduction: 3 },
+            { level: 3, damageReduction: 5 }
         ]
     },
 
@@ -139,14 +127,12 @@ export const PassiveConfig = {
         symbol: '$',
         color: '#FFD700',
         description: 'Increases XP gained',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'uncommon',
         effects: [
-            { level: 1, xpMultiplier: 0.10 },
-            { level: 2, xpMultiplier: 0.20 },
-            { level: 3, xpMultiplier: 0.30 },
-            { level: 4, xpMultiplier: 0.40 },
-            { level: 5, xpMultiplier: 0.50 }
+            { level: 1, xpMultiplier: 0.15 },
+            { level: 2, xpMultiplier: 0.30 },
+            { level: 3, xpMultiplier: 0.50 }
         ]
     },
 
@@ -159,14 +145,12 @@ export const PassiveConfig = {
         symbol: '%',
         color: '#FF00FF',
         description: 'Increases loot quality',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'rare',
         effects: [
-            { level: 1, luckBonus: 10 },  // Abstract luck stat
-            { level: 2, luckBonus: 20 },
-            { level: 3, luckBonus: 30 },
-            { level: 4, luckBonus: 40 },
-            { level: 5, luckBonus: 50 }
+            { level: 1, luckBonus: 15 },
+            { level: 2, luckBonus: 30 },
+            { level: 3, luckBonus: 50 }
         ]
     },
 
@@ -179,14 +163,12 @@ export const PassiveConfig = {
         symbol: '&',
         color: '#00FF88',
         description: 'Slowly recover health',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'rare',
         effects: [
-            { level: 1, healthRegen: 0.5 },  // HP per second
-            { level: 2, healthRegen: 1.0 },
-            { level: 3, healthRegen: 1.5 },
-            { level: 4, healthRegen: 2.0 },
-            { level: 5, healthRegen: 2.5 }
+            { level: 1, healthRegen: 0.3 },
+            { level: 2, healthRegen: 0.6 },
+            { level: 3, healthRegen: 1.0 }
         ]
     },
 
@@ -199,14 +181,12 @@ export const PassiveConfig = {
         symbol: 'O',
         color: '#FF8800',
         description: 'Increases weapon area of effect',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'uncommon',
         effects: [
-            { level: 1, areaMultiplier: 0.10 },  // +10% size
-            { level: 2, areaMultiplier: 0.20 },
-            { level: 3, areaMultiplier: 0.30 },
-            { level: 4, areaMultiplier: 0.40 },
-            { level: 5, areaMultiplier: 0.50 }
+            { level: 1, areaMultiplier: 0.15 },
+            { level: 2, areaMultiplier: 0.30 },
+            { level: 3, areaMultiplier: 0.50 }
         ]
     },
 
@@ -219,14 +199,12 @@ export const PassiveConfig = {
         symbol: '~',
         color: '#8888FF',
         description: 'Increases weapon effect duration',
-        maxLevel: 5,
+        maxLevel: 3,
         rarity: 'uncommon',
         effects: [
-            { level: 1, durationMultiplier: 0.10 },  // +10% duration
-            { level: 2, durationMultiplier: 0.20 },
-            { level: 3, durationMultiplier: 0.30 },
-            { level: 4, durationMultiplier: 0.40 },
-            { level: 5, durationMultiplier: 0.50 }
+            { level: 1, durationMultiplier: 0.15 },
+            { level: 2, durationMultiplier: 0.30 },
+            { level: 3, durationMultiplier: 0.50 }
         ]
     }
 };

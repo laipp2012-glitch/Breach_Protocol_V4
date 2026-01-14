@@ -143,7 +143,8 @@ export class InputSystem {
             ...MOVEMENT_KEYS.LEFT,
             ...MOVEMENT_KEYS.RIGHT,
             'Space',
-            'Escape'
+            'Escape',
+            'KeyE'
         ];
 
         if (gameKeys.includes(event.code)) {

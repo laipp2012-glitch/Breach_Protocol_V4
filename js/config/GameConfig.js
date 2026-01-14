@@ -44,12 +44,12 @@ export const GAME_CONFIG = {
         MARGIN: 50,          // Pixels outside camera view for spawn
 
         // Continuous spawn settings (Trickle)
-        CONTINUOUS_INTERVAL: 0.7, // Seconds between single spawns (~1.4 enemies/sec)
+        CONTINUOUS_INTERVAL: 2.0, // Seconds between single spawns (~1.4 enemies/sec)
 
         // Wave definitions (Time in seconds)
         // [Time Limit, Interval, Wave Size, Min Directions, Max Directions]
         WAVES: [
-            { TIME_LIMIT: 180, INTERVAL: 10, SIZE: 15, MIN_DIRS: 2, MAX_DIRS: 3 }, // 0-3 mins
+            { TIME_LIMIT: 180, INTERVAL: 10, SIZE: 10, MIN_DIRS: 2, MAX_DIRS: 3 }, // 0-3 mins
             { TIME_LIMIT: 360, INTERVAL: 8, SIZE: 22, MIN_DIRS: 2, MAX_DIRS: 4 }, // 3-6 mins
             { TIME_LIMIT: 600, INTERVAL: 6, SIZE: 30, MIN_DIRS: 3, MAX_DIRS: 4 }, // 6-10 mins
             { TIME_LIMIT: Infinity, INTERVAL: 5, SIZE: 45, MIN_DIRS: 4, MAX_DIRS: 4 } // 10+ mins

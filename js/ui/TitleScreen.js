@@ -4,6 +4,8 @@
  * @module ui/TitleScreen
  */
 
+import { playerProfile } from '../systems/PlayerProfile.js';
+
 /**
  * Renders the title screen
  */
@@ -17,6 +19,37 @@ export class TitleScreen {
 
         /** @type {boolean} Whether prompt is visible */
         this.showPrompt = true;
+
+        /** @type {boolean} Whether wipe confirm is showing */
+        this.showWipeConfirm = false;
+
+        /** @type {Function|null} Callback when profile is wiped */
+        this.onProfileWiped = null;
+    }
+
+    /**
+     * Handle key press for wipe confirmation
+     * @param {string} key - Key code pressed
+     * @returns {boolean} Whether key was consumed
+     */
+    handleKey(key) {
+        if (this.showWipeConfirm) {
+            if (key === 'KeyY') {
+                playerProfile.wipeProfile();
+                this.showWipeConfirm = false;
+                if (this.onProfileWiped) {
+                    this.onProfileWiped();
+                }
+                return true;
+            } else if (key === 'KeyN' || key === 'Escape') {
+                this.showWipeConfirm = false;
+                return true;
+            }
+        } else if (key === 'Delete' || key === 'Backspace') {
+            this.showWipeConfirm = true;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -82,6 +115,25 @@ export class TitleScreen {
         // Reset shadow
         ctx.shadowBlur = 0;
 
+        // Wipe confirm dialog
+        if (this.showWipeConfirm) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(width / 2 - 180, height / 2 + 70, 360, 80);
+
+            ctx.strokeStyle = '#ff3333';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(width / 2 - 180, height / 2 + 70, 360, 80);
+
+            ctx.fillStyle = '#ff3333';
+            ctx.font = '18px monospace';
+            ctx.fillText('! DELETE ALL SAVE DATA? !', width / 2, height / 2 + 95);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px monospace';
+            ctx.fillText('Y - Confirm   |   N - Cancel', width / 2, height / 2 + 125);
+            return;
+        }
+
         // Start prompt (blinking)
         if (this.showPrompt) {
             ctx.fillStyle = '#ffffff';
@@ -89,11 +141,27 @@ export class TitleScreen {
             ctx.fillText('[ PRESS SPACE TO START ]', width / 2, height / 2 + 100);
         }
 
+        // Player name display
+        if (playerProfile.hasProfile()) {
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '16px monospace';
+            ctx.fillText(`Agent: ${playerProfile.getPlayerName()}`, width / 2, height / 2 + 140);
+
+            // Gold display
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillText(`Gold: ${playerProfile.getGold()}`, width / 2, height / 2 + 165);
+        }
+
         // Controls hint
         ctx.fillStyle = '#666666';
         ctx.font = '16px monospace';
-        ctx.fillText('WASD / Arrows - Move', width / 2, height - 80);
-        ctx.fillText('ESC - Pause', width / 2, height - 55);
+        ctx.fillText('WASD / Arrows - Move', width / 2, height - 100);
+        ctx.fillText('ESC - Pause', width / 2, height - 75);
+
+        // Delete save hint
+        ctx.fillStyle = '#993333';
+        ctx.font = '14px monospace';
+        ctx.fillText('DEL - Delete Save', width / 2, height - 45);
 
         // Version
         ctx.fillStyle = '#333333';
