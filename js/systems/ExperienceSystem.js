@@ -37,7 +37,7 @@ export class ExperienceSystem {
      * @returns {number} XP required
      */
     xpForLevel(level) {
-        return Math.floor(this.baseXP * Math.pow(1.4, level));
+        return Math.floor(this.baseXP * Math.pow(1.3, level));
     }
 
     /**
@@ -52,10 +52,13 @@ export class ExperienceSystem {
             return false;
         }
 
-        // Update pickups (magnetic pull)
+        // Update pickups (magnetic pull) - use effective pickup radius from passives
+        const effectivePickupRadius = player.getEffectivePickupRadius ?
+            player.getEffectivePickupRadius() : player.pickupRadius;
+
         for (const pickup of pickups) {
             if (pickup.alive) {
-                pickup.update(deltaTime, player.position, player.pickupRadius);
+                pickup.update(deltaTime, player.position, effectivePickupRadius);
             }
         }
 
@@ -84,7 +87,11 @@ export class ExperienceSystem {
      * @returns {boolean} True if player leveled up
      */
     addExperience(player, amount) {
-        player.experience += amount;
+        // Apply XP multiplier from passives
+        const xpMultiplier = player.passiveStats?.xpMultiplier || 1;
+        const finalAmount = Math.floor(amount * xpMultiplier);
+
+        player.experience += finalAmount;
 
         const xpNeeded = this.xpForLevel(player.level);
 

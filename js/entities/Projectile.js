@@ -33,7 +33,10 @@ export class Projectile {
         this.startPosition = new Vector2D(x, y);
 
         /** @type {Vector2D} Velocity vector */
-        this.velocity = direction.multiply(weapon.projectileSpeed);
+        // Ensure velocity is always a proper Vector2D even if direction.multiply returns a plain object
+        const vel = direction.multiply(weapon.projectileSpeed);
+        this.velocity = vel instanceof Vector2D ? vel : new Vector2D(vel.x, vel.y);
+
 
         /** @type {number} Damage dealt on hit */
         this.damage = weapon.damage;
@@ -55,15 +58,42 @@ export class Projectile {
 
         /** @type {boolean} Whether projectile is active */
         this.alive = true;
+
+        /** @type {string|null} Custom character for rendering (if set by weapon) */
+        this.customChar = weapon.customChar || null;
+
+        /** @type {string|null} Custom color for rendering (if set by weapon) */
+        this.customColor = weapon.customColor || null;
+
+        // Homing missile properties (optional)
+        /** @type {boolean} Whether this projectile homes in on targets */
+        this.isHoming = weapon.isHoming || false;
+
+        /** @type {number} Turn rate in degrees per second for homing */
+        this.homingStrength = weapon.homingStrength || 0;
+
+        /** @type {number} Maximum distance to acquire/track targets */
+        this.lockOnRadius = weapon.lockOnRadius || 0;
+
+        /** @type {Object|null} Currently tracked enemy target */
+        this.targetEnemy = null;
     }
+
+
 
     /**
      * Updates the projectile each frame
      * @param {number} deltaTime - Time since last frame in seconds
+     * @param {Array} enemies - Optional array of enemies for homing projectiles
      */
-    update(deltaTime) {
+    update(deltaTime, enemies = null) {
         if (!this.alive) {
             return;
+        }
+
+        // Apply homing logic BEFORE position update (if this is a homing projectile)
+        if (this.isHoming && enemies) {
+            this.applyHomingBehavior(deltaTime, enemies);
         }
 
         // Calculate movement this frame
@@ -81,6 +111,88 @@ export class Projectile {
             this.alive = false;
         }
     }
+
+    /**
+     * Applies homing behavior - smoothly rotates velocity toward target
+     * @param {number} deltaTime - Time since last frame
+     * @param {Array} enemies - Array of enemy entities
+     */
+    applyHomingBehavior(deltaTime, enemies) {
+        // Find target (prefer existing target if alive, else find nearest)
+        let target = null;
+
+        if (this.targetEnemy && this.targetEnemy.alive && this.targetEnemy.health > 0) {
+            // Check if existing target is still within lock-on radius
+            const dx = this.targetEnemy.position.x - this.position.x;
+            const dy = this.targetEnemy.position.y - this.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist <= this.lockOnRadius) {
+                target = this.targetEnemy;
+            }
+        }
+
+        // Find new target if needed
+        if (!target) {
+            target = this.findNearestEnemy(enemies);
+            this.targetEnemy = target;
+        }
+
+        if (!target) {
+            return; // No target, continue straight
+        }
+
+        // Calculate angle to target
+        const dx = target.position.x - this.position.x;
+        const dy = target.position.y - this.position.y;
+        const targetAngle = Math.atan2(dy, dx);
+
+        // Current velocity angle
+        const currentAngle = Math.atan2(this.velocity.y, this.velocity.x);
+
+        // Calculate smallest angle difference
+        let angleDiff = targetAngle - currentAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        // Apply turn rate (limited by homingStrength in degrees/second)
+        const maxTurn = (this.homingStrength * Math.PI / 180) * deltaTime;
+        const turn = Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+
+        // Rotate velocity vector
+        const newAngle = currentAngle + turn;
+        const speed = this.velocity.magnitude();
+        this.velocity = new Vector2D(
+            Math.cos(newAngle) * speed,
+            Math.sin(newAngle) * speed
+        );
+    }
+
+    /**
+     * Finds the nearest enemy within lock-on radius
+     * @param {Array} enemies - Array of enemy entities
+     * @returns {Object|null} Nearest enemy or null if none in range
+     */
+    findNearestEnemy(enemies) {
+        let nearest = null;
+        let minDist = this.lockOnRadius;
+
+        for (const enemy of enemies) {
+            if (!enemy.alive || enemy.health <= 0) continue;
+
+            const dx = enemy.position.x - this.position.x;
+            const dy = enemy.position.y - this.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = enemy;
+            }
+        }
+
+        return nearest;
+    }
+
 
     /**
      * Called when projectile hits an enemy

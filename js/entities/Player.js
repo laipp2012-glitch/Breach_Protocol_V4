@@ -7,6 +7,7 @@
 
 import { Vector2D } from '../utils/Vector2D.js';
 import { GAME_CONFIG } from '../config/GameConfig.js';
+import { getPassiveConfig, getPassiveEffectAtLevel } from '../config/PassiveConfig.js';
 
 /**
  * Player entity class
@@ -65,6 +66,23 @@ export class Player {
 
         /** @type {number} Pickup magnet radius */
         this.pickupRadius = 50;
+
+        // Passive items system
+        /** @type {Array<{id: string, level: number}>} Equipped passive items */
+        this.passiveItems = [];
+
+        /** @type {Object} Calculated passive stats (recalculated when passives change) */
+        this.passiveStats = this.calculatePassiveStats();
+
+        // Base stats for reference (used with passives for effective values)
+        /** @type {number} Base movement speed */
+        this.baseSpeed = GAME_CONFIG.PLAYER.SPEED;
+
+        /** @type {number} Base max health */
+        this.baseMaxHealth = GAME_CONFIG.PLAYER.MAX_HEALTH;
+
+        /** @type {number} Base pickup radius */
+        this.basePickupRadius = 50;
     }
 
     /**
@@ -75,8 +93,11 @@ export class Player {
      * @param {number} worldHeight - World height for bounds checking
      */
     update(deltaTime, inputVector, worldWidth, worldHeight) {
+        // Calculate effective speed with passive multiplier
+        const effectiveSpeed = this.baseSpeed * this.passiveStats.speedMultiplier;
+
         // Update velocity based on input
-        this.velocity = inputVector.multiply(this.speed);
+        this.velocity = inputVector.multiply(effectiveSpeed);
 
         // Update position based on velocity and deltaTime
         this.position = this.position.add(this.velocity.multiply(deltaTime));
@@ -120,7 +141,10 @@ export class Player {
             return false;
         }
 
-        this.health -= amount;
+        // Apply damage reduction from passives (minimum 1 damage)
+        const reducedDamage = Math.max(1, amount - this.passiveStats.damageReduction);
+
+        this.health -= reducedDamage;
         this.damaged = true;
         this.damageFlashTimer = 0.1; // 100ms flash
 
@@ -142,7 +166,8 @@ export class Player {
      * @param {number} amount - Amount to heal
      */
     heal(amount) {
-        this.health = Math.min(this.maxHealth, this.health + amount);
+        const effectiveMaxHealth = this.getEffectiveMaxHealth();
+        this.health = Math.min(effectiveMaxHealth, this.health + amount);
     }
 
     /**
@@ -186,7 +211,7 @@ export class Player {
      * @returns {number} Health percentage (0-1)
      */
     getHealthPercent() {
-        return this.health / this.maxHealth;
+        return this.health / this.getEffectiveMaxHealth();
     }
 
     /**
@@ -213,5 +238,144 @@ export class Player {
         this.experience = 0;
         this.level = 1;
         this.weapons = [];
+
+        // Reset passive items
+        this.passiveItems = [];
+        this.passiveStats = this.calculatePassiveStats();
+    }
+
+    // ============================================
+    // PASSIVE ITEM SYSTEM
+    // ============================================
+
+    /**
+     * Adds a new passive item or upgrades existing one
+     * @param {string} passiveId - ID of the passive to add
+     * @returns {boolean} True if successful
+     */
+    addPassiveItem(passiveId) {
+        const config = getPassiveConfig(passiveId);
+        if (!config) return false;
+
+        // Check if already have this passive
+        const existing = this.passiveItems.find(p => p.id === passiveId);
+        if (existing) {
+            return this.upgradePassiveItem(passiveId);
+        }
+
+        // Add at level 1
+        this.passiveItems.push({
+            id: passiveId,
+            level: 1
+        });
+
+        // Recalculate stats
+        this.passiveStats = this.calculatePassiveStats();
+
+        // If we gained max health bonus, heal the difference
+        if (this.passiveStats.maxHealthBonus > 0) {
+            const healthGain = this.passiveStats.maxHealthBonus;
+            this.health = Math.min(this.getEffectiveMaxHealth(), this.health + healthGain);
+        }
+
+        return true;
+    }
+
+    /**
+     * Upgrades an existing passive item
+     * @param {string} passiveId - ID of the passive to upgrade
+     * @returns {boolean} True if upgrade successful
+     */
+    upgradePassiveItem(passiveId) {
+        const passive = this.passiveItems.find(p => p.id === passiveId);
+        if (!passive) return false;
+
+        const config = getPassiveConfig(passiveId);
+        if (passive.level >= config.maxLevel) return false;
+
+        // Store old max health bonus
+        const oldMaxHealthBonus = this.passiveStats.maxHealthBonus;
+
+        passive.level++;
+        this.passiveStats = this.calculatePassiveStats();
+
+        // If max health increased, heal the difference
+        const healthGain = this.passiveStats.maxHealthBonus - oldMaxHealthBonus;
+        if (healthGain > 0) {
+            this.health = Math.min(this.getEffectiveMaxHealth(), this.health + healthGain);
+        }
+
+        return true;
+    }
+
+    /**
+     * Calculates aggregate passive stats from all equipped passives
+     * @returns {Object} Calculated passive stats
+     */
+    calculatePassiveStats() {
+        const stats = {
+            damageMultiplier: 1.0,
+            speedMultiplier: 1.0,
+            cooldownMultiplier: 1.0,
+            xpMultiplier: 1.0,
+            areaMultiplier: 1.0,
+            pickupRadiusBonus: 0,
+            maxHealthBonus: 0,
+            damageReduction: 0,
+            healthRegen: 0,
+            luckBonus: 0
+        };
+
+        // Sum all passive effects
+        for (const passive of this.passiveItems) {
+            const effect = getPassiveEffectAtLevel(passive.id, passive.level);
+            if (!effect) continue;
+
+            // Apply each effect property
+            for (const [key, value] of Object.entries(effect)) {
+                if (key === 'level') continue;
+
+                // Multipliers stack additively (1.0 + 0.1 + 0.1 = 1.2)
+                if (key.includes('Multiplier')) {
+                    stats[key] += value;
+                }
+                // Flat bonuses stack additively
+                else if (stats.hasOwnProperty(key)) {
+                    stats[key] += value;
+                }
+            }
+        }
+
+        return stats;
+    }
+
+    /**
+     * Gets the effective max health (base + passive bonus)
+     * @returns {number} Effective max health
+     */
+    getEffectiveMaxHealth() {
+        return this.baseMaxHealth + this.passiveStats.maxHealthBonus;
+    }
+
+    /**
+     * Gets the effective pickup radius (base + passive bonus)
+     * @returns {number} Effective pickup radius
+     */
+    getEffectivePickupRadius() {
+        return this.basePickupRadius + this.passiveStats.pickupRadiusBonus;
+    }
+
+    /**
+     * Applies health regeneration based on passive stats
+     * @param {number} deltaTime - Time since last frame in seconds
+     */
+    applyRegeneration(deltaTime) {
+        if (this.passiveStats.healthRegen > 0 && this.health > 0) {
+            const effectiveMaxHealth = this.getEffectiveMaxHealth();
+            this.health = Math.min(
+                effectiveMaxHealth,
+                this.health + this.passiveStats.healthRegen * deltaTime
+            );
+        }
     }
 }

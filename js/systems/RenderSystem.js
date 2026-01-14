@@ -115,7 +115,31 @@ export class RenderSystem {
                         projectile.position.x,
                         projectile.position.y,
                         projectile.radius || 4,
-                        projectile.weaponType || 'default'
+                        projectile.weaponType || 'default',
+                        projectile.customChar || null,
+                        projectile.customColor || null
+                    );
+                    this.renderedCount++;
+                } else {
+                    this.culledCount++;
+                }
+            }
+        }
+
+
+        // 4b. Draw enemy projectiles - with culling
+        const enemyProjectiles = gameState.enemyProjectiles || [];
+        for (const proj of enemyProjectiles) {
+            if (proj.alive !== false) {
+                if (this.isVisible(proj.position.x, proj.position.y, camera, width, height)) {
+                    this.renderer.drawProjectile(
+                        ctx,
+                        proj.position.x,
+                        proj.position.y,
+                        proj.radius || 5,
+                        'enemy',  // type
+                        proj.char,  // custom character
+                        proj.color  // custom color
                     );
                     this.renderedCount++;
                 } else {
@@ -177,7 +201,44 @@ export class RenderSystem {
             this.renderedCount++;
         }
 
+        // 5c. Draw orbit drones (before player, after aura)
+        const orbitDrones = gameState.orbitDrones || [];
+        for (const drone of orbitDrones) {
+            if (drone.alive) {
+                if (this.isVisible(drone.position.x, drone.position.y, camera, width, height)) {
+                    this.renderer.drawOrbitDrone(
+                        ctx,
+                        drone.position.x,
+                        drone.position.y,
+                        drone
+                    );
+                    this.renderedCount++;
+                } else {
+                    this.culledCount++;
+                }
+            }
+        }
+
+        // 5d. Draw active mines (ground layer)
+        const activeMines = gameState.activeMines || [];
+        for (const mine of activeMines) {
+            if (mine.alive) {
+                if (this.isVisible(mine.position.x, mine.position.y, camera, width, height)) {
+                    this.renderer.drawMine(
+                        ctx,
+                        mine.position.x,
+                        mine.position.y,
+                        mine
+                    );
+                    this.renderedCount++;
+                } else {
+                    this.culledCount++;
+                }
+            }
+        }
+
         // 6. Draw player (on top of enemies) - always visible
+
         if (player) {
             this.renderer.drawPlayer(
                 ctx,

@@ -76,6 +76,21 @@ export class ASCIIRenderer extends IRenderer {
                 baseFontSize = 14;
                 color = GAME_CONFIG.COLORS.ENEMY_FAST;
                 break;
+            case 'ranger':
+                char = GAME_CONFIG.ASCII.ENEMY_RANGER;
+                baseFontSize = 16;
+                color = GAME_CONFIG.COLORS.ENEMY_RANGER;
+                break;
+            case 'swarm':
+                char = GAME_CONFIG.ASCII.ENEMY_SWARM;
+                baseFontSize = 18;
+                color = GAME_CONFIG.COLORS.ENEMY_SWARM;
+                break;
+            case 'swarm_mini':
+                char = GAME_CONFIG.ASCII.ENEMY_SWARM_MINI;
+                baseFontSize = 12;
+                color = GAME_CONFIG.COLORS.ENEMY_SWARM_MINI;
+                break;
             case 'basic':
             default:
                 char = GAME_CONFIG.ASCII.ENEMY_BASIC;
@@ -114,30 +129,99 @@ export class ASCIIRenderer extends IRenderer {
      * @param {number} y - Y position
      * @param {number} radius - Projectile radius
      * @param {string} type - Projectile/weapon type
+     * @param {string|null} customChar - Optional custom character override
+     * @param {string|null} customColor - Optional custom color override
      */
-    drawProjectile(ctx, x, y, radius, type) {
+    drawProjectile(ctx, x, y, radius, type, customChar = null, customColor = null) {
         ctx.save();
 
         let char, color;
 
-        // Select character and color based on weapon type
-        switch (type) {
-            case 'knife':
-                char = GAME_CONFIG.ASCII.PROJECTILE_KNIFE;
-                color = GAME_CONFIG.COLORS.PROJECTILE_KNIFE;
-                break;
-            case 'garlic':
-                char = GAME_CONFIG.ASCII.PROJECTILE_GARLIC;
-                color = GAME_CONFIG.COLORS.PROJECTILE_GARLIC;
-                break;
-            case 'magic_wand':
-            default:
-                char = GAME_CONFIG.ASCII.PROJECTILE;
-                color = GAME_CONFIG.COLORS.PROJECTILE;
-                break;
+        // Use custom character and color if provided (for weapons like Scatter)
+        if (customChar && customColor) {
+            char = customChar;
+            color = customColor;
+        } else {
+            // Select character and color based on weapon type
+            switch (type) {
+                case 'knife':
+                    char = GAME_CONFIG.ASCII.PROJECTILE_KNIFE;
+                    color = GAME_CONFIG.COLORS.PROJECTILE_KNIFE;
+                    break;
+                case 'garlic':
+                    char = GAME_CONFIG.ASCII.PROJECTILE_GARLIC;
+                    color = GAME_CONFIG.COLORS.PROJECTILE_GARLIC;
+                    break;
+                case 'scatter':
+                    char = GAME_CONFIG.ASCII.PROJECTILE_SCATTER;
+                    color = GAME_CONFIG.COLORS.PROJECTILE_SCATTER;
+                    break;
+                case 'seeker':
+                    char = GAME_CONFIG.ASCII.PROJECTILE_SEEKER;
+                    color = GAME_CONFIG.COLORS.PROJECTILE_SEEKER;
+                    break;
+                case 'magic_wand':
+                default:
+                    char = GAME_CONFIG.ASCII.PROJECTILE;
+                    color = GAME_CONFIG.COLORS.PROJECTILE;
+                    break;
+
+            }
         }
 
         ctx.font = GAME_CONFIG.FONTS.PROJECTILE;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = color;
+
+        ctx.fillText(char, x, y);
+
+        ctx.restore();
+    }
+
+
+    /**
+     * Draws an orbit drone
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {Object} drone - Drone entity
+     */
+    drawOrbitDrone(ctx, x, y, drone) {
+        ctx.save();
+
+        const char = drone.droneChar || 'o';
+        const color = drone.droneColor || '#00FFFF';
+
+        ctx.font = '16px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = color;
+
+        ctx.fillText(char, x, y);
+
+        ctx.restore();
+    }
+
+    /**
+     * Draws a mine with armed/unarmed visual state
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {Object} mine - Mine entity
+     */
+    drawMine(ctx, x, y, mine) {
+        ctx.save();
+
+        const char = mine.mineChar || '*';
+        const color = mine.getColor();
+        const scale = mine.getScale();
+
+        // Calculate scaled font size
+        const baseFontSize = 16;
+        const scaledSize = Math.round(baseFontSize * scale);
+
+        ctx.font = `${scaledSize}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = color;

@@ -195,12 +195,58 @@ export class CollisionSystem {
     }
 
     /**
+     * Checks enemy projectiles hitting player
+     * @param {Array} enemyProjectiles - Array of enemy projectile objects
+     * @param {Object} player - The player entity
+     * @returns {Object} Collision results
+     */
+    checkEnemyProjectilePlayerCollisions(enemyProjectiles, player) {
+        const results = {
+            playerHit: false,
+            damage: 0,
+            projectilesHit: []
+        };
+
+        // Skip if god mode enabled or player is invulnerable
+        if (GAME_CONFIG.DEBUG.GOD_MODE || player.invulnerable) {
+            return results;
+        }
+
+        for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+            const proj = enemyProjectiles[i];
+
+            // Create temp objects for circle collision check
+            const projEntity = {
+                position: proj.position,
+                radius: proj.radius || 5
+            };
+
+            if (this.checkCircleCollision(projEntity, player)) {
+                // Hit player
+                results.playerHit = true;
+                results.damage += proj.damage;
+                results.projectilesHit.push(proj);
+
+                // Mark projectile for removal by setting a flag
+                proj.alive = false;
+            }
+        }
+
+        // Apply damage to player if hit
+        if (results.playerHit) {
+            player.takeDamage(results.damage);
+        }
+
+        return results;
+    }
+
+    /**
      * Full collision update (call once per frame)
      * @param {Object} gameState - Current game state
      * @returns {Object} All collision results
      */
     update(gameState) {
-        const { player, enemies, projectiles = [] } = gameState;
+        const { player, enemies, projectiles = [], orbitDrones = [], enemyProjectiles = [] } = gameState;
 
         // Reset collision counter
         this.collisionChecksThisFrame = 0;
@@ -210,6 +256,8 @@ export class CollisionSystem {
             playerDamage: 0,
             enemiesHit: [],
             enemiesKilled: [],
+            droneHits: [],
+            enemyProjectileHits: [],  // Track enemy projectile hits for effects
             collisionChecks: 0
         };
 
@@ -232,11 +280,81 @@ export class CollisionSystem {
             }
         }
 
+        // Drone-enemy collisions
+        if (orbitDrones.length > 0) {
+            const droneCollisions = this.checkDroneEnemyCollisions(orbitDrones, enemies);
+            for (const collision of droneCollisions) {
+                results.droneHits.push(collision);
+                results.enemiesHit.push(collision.enemy);
+                if (!collision.enemy.alive) {
+                    results.enemiesKilled.push(collision.enemy);
+                }
+            }
+        }
+
         // Enemy-enemy separation
         this.separateEnemies(enemies);
 
+        // Enemy projectile-player collisions
+        if (enemyProjectiles.length > 0) {
+            const enemyProjResults = this.checkEnemyProjectilePlayerCollisions(enemyProjectiles, player);
+            if (enemyProjResults.playerHit) {
+                results.playerHit = true;
+                results.playerDamage += enemyProjResults.damage;
+                results.enemyProjectileHits = enemyProjResults.projectilesHit;
+            }
+            // Remove hit projectiles from gameState
+            gameState.enemyProjectiles = enemyProjectiles.filter(p => p.alive !== false);
+        }
+
         // Store collision count
         results.collisionChecks = this.collisionChecksThisFrame;
+
+        return results;
+    }
+
+    /**
+     * Checks drone-enemy collisions
+     * @param {Array} drones - Array of orbit drone entities
+     * @param {Array} enemies - Array of enemy entities (not used, uses grid)
+     * @returns {Array} Array of collision results
+     */
+    checkDroneEnemyCollisions(drones, enemies) {
+        const results = [];
+
+        for (const drone of drones) {
+            if (!drone.alive) {
+                continue;
+            }
+
+            // Only check nearby enemies using spatial hash
+            const nearbyEnemies = this.enemyGrid.getNearby(drone);
+
+            for (const enemy of nearbyEnemies) {
+                if (!enemy.alive) {
+                    continue;
+                }
+
+                // Check if drone can hit this enemy (not on cooldown)
+                if (!drone.canHitEnemy(enemy)) {
+                    continue;
+                }
+
+                if (this.checkCircleCollision(drone, enemy)) {
+                    results.push({
+                        drone,
+                        enemy,
+                        damage: drone.damage
+                    });
+
+                    // Apply damage to enemy
+                    enemy.takeDamage(drone.damage);
+
+                    // Record hit on drone (starts cooldown)
+                    drone.recordHit(enemy);
+                }
+            }
+        }
 
         return results;
     }
@@ -252,3 +370,4 @@ export class CollisionSystem {
         };
     }
 }
+

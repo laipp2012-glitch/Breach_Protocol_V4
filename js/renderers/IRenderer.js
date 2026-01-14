@@ -44,11 +44,13 @@ export class IRenderer {
      * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {number} radius - Projectile collision radius
-     * @param {string} type - Projectile type (weapon type)
+     * @param {number} radius - Projectile radius
+     * @param {string} type - Projectile type
+     * @param {string|null} customChar - Optional custom character override
+     * @param {string|null} customColor - Optional custom color override
      * @throws {Error} Must be implemented by subclass
      */
-    drawProjectile(ctx, x, y, radius, type) {
+    drawProjectile(ctx, x, y, radius, type, customChar = null, customColor = null) {
         throw new Error('IRenderer.drawProjectile() must be implemented by subclass');
     }
 
@@ -65,6 +67,42 @@ export class IRenderer {
     drawPickup(ctx, x, y, radius, type, value) {
         throw new Error('IRenderer.drawPickup() must be implemented by subclass');
     }
+
+    /**
+     * Draws an orbit drone entity
+     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {Object} drone - Drone entity with droneChar and droneColor
+     */
+    drawOrbitDrone(ctx, x, y, drone) {
+        // Default implementation - simple circle
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = drone.droneColor || '#00FFFF';
+        ctx.fill();
+        ctx.restore();
+    }
+
+    /**
+     * Draws a mine entity
+     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {Object} mine - Mine entity with getColor() and getScale() methods
+     */
+    drawMine(ctx, x, y, mine) {
+        // Default implementation - simple asterisk
+        ctx.save();
+        ctx.font = '16px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = mine.getColor ? mine.getColor() : '#FF00FF';
+        ctx.fillText('*', x, y);
+        ctx.restore();
+    }
+
 
     /**
      * Draws a particle effect

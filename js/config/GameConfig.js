@@ -32,6 +32,12 @@ export const GAME_CONFIG = {
         INVULNERABLE_DURATION: 1.0  // Seconds of invulnerability after damage
     },
 
+    // Inventory limits
+    INVENTORY: {
+        MAX_WEAPONS: 6,      // Maximum weapons player can hold
+        MAX_PASSIVES: 6      // Maximum passive items player can hold
+    },
+
     // Spawn system settings
     SPAWN: {
         BASE_RATE: 1,        // Enemies per second at start
@@ -47,9 +53,14 @@ export const GAME_CONFIG = {
         ENEMY_BASIC: '#ff0000',      // Red
         ENEMY_TANK: '#ff4444',       // Dark red
         ENEMY_FAST: '#ff8800',       // Orange
+        ENEMY_RANGER: '#FF6600',     // Orange (ranger)
+        ENEMY_SWARM: '#9900FF',      // Purple (swarm)
+        ENEMY_SWARM_MINI: '#CC66FF', // Light purple (swarm mini)
         PROJECTILE: '#ffff00',       // Yellow (Magic Wand)
         PROJECTILE_KNIFE: '#cccccc', // Silver (Knife)
         PROJECTILE_GARLIC: '#88ff88',// Light green (Garlic aura)
+        PROJECTILE_SCATTER: '#FFA500',// Orange (Scatter pellets)
+        PROJECTILE_SEEKER: '#FF00FF', // Magenta (Seeker missiles)
         XP_GEM: '#00ffff',           // Cyan
         HEALTH_PICKUP: '#00ff00',    // Green
         BACKGROUND: '#0a0a0a',       // Very dark
@@ -62,6 +73,9 @@ export const GAME_CONFIG = {
         ENEMY: '16px monospace',
         ENEMY_TANK: '20px monospace',
         ENEMY_FAST: '14px monospace',
+        ENEMY_RANGER: '16px monospace',
+        ENEMY_SWARM: '18px monospace',
+        ENEMY_SWARM_MINI: '12px monospace',
         PROJECTILE: '12px monospace',
         PICKUP: '14px monospace',
         PICKUP_LARGE: '16px monospace',
@@ -74,9 +88,14 @@ export const GAME_CONFIG = {
         ENEMY_BASIC: 'E',
         ENEMY_TANK: 'T',
         ENEMY_FAST: 'F',
+        ENEMY_RANGER: 'R',
+        ENEMY_SWARM: 'S',
+        ENEMY_SWARM_MINI: 's',
         PROJECTILE: '*',           // Magic Wand projectile
         PROJECTILE_KNIFE: '/',     // Knife projectile
         PROJECTILE_GARLIC: '◎',    // Garlic aura
+        PROJECTILE_SCATTER: '.',    // Scatter pellet
+        PROJECTILE_SEEKER: '>',      // Seeker missile
         XP_GEM_SMALL: '$',
         XP_GEM_LARGE: '◆',
         HEALTH_PICKUP: '+'
@@ -102,6 +121,7 @@ Object.freeze(GAME_CONFIG);
 Object.freeze(GAME_CONFIG.WORLD);
 Object.freeze(GAME_CONFIG.CAMERA);
 Object.freeze(GAME_CONFIG.PLAYER);
+Object.freeze(GAME_CONFIG.INVENTORY);
 Object.freeze(GAME_CONFIG.SPAWN);
 Object.freeze(GAME_CONFIG.COLORS);
 Object.freeze(GAME_CONFIG.FONTS);
