@@ -83,13 +83,13 @@ export const WEAPON_TYPES = {
         type: 'projectile_directional',
         baseStats: {
             damage: 3,
-            cooldown: 2.0,   // approx 1.5 attacks/sec
+            cooldown: 1.0,   // approx 1.5 attacks/sec
             area: 300,        // Range
             size: 1.0,
             speed: 500,
             duration: 0,
             amount: 1,
-            pierce: 1
+            pierce: 2
         },
         affectedBy: {
             damage: true,

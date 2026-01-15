@@ -1,88 +1,149 @@
 # Breach Protocol - Game Design Document
 
-**Version:** 1.0 (Current Build)
+**Version:** 2.0 (Extraction Update)
 **Target Platform:** Web Browser (HTML5/Canvas)
-**Genre:** Survival Roguelike / "Bullet Heaven" (Vampire Survivors-like)
+**Genre:** Survival Extraction Roguelike
 **Visual Style:** Retro Cyberpunk ASCII
 
 ---
 
 ## 1. Game Overview
 
-**Breach Protocol** is a fast-paced survival game where the player controls a lone unit surviving against endless waves of viral enemies in a digital cyberspace environment. The goal is to survive as long as possible, collect data (XP), upgrade subroutines (weapons), and become an unstoppable force.
+**Breach Protocol** is a high-stakes survival extraction game. You are a rogue process in a hostile mainframe. Your goal is not just to survive, but to secure data (Gold) and get out before the system purges you.
 
 ### Core Loop
-1.  **SURVIVE**: Move to avoid enemies. Weapons fire automatically.
-2.  **COLLECT**: Gather dropped Data Gems (XP) from defeated enemies.
-3.  **UPGRADE**: Level up to gain new weapons or boost stats.
-4.  **REPEAT**: Survive increasingly difficult waves until death.
+1.  **PREPARE**: Choose your loadout (Weapon + Passive) at the Hub.
+2.  **SURVIVE**: Enter the mainframe. Survive waves of viral enemies.
+3.  **COLLECT**: Gather dropped Data Gems (XP) to power up mid-run.
+4.  **EXTRACT**: Locate a temporary extraction signal (Exit) and escape.
+5.  **PROFIT**: Secure your earnings (Gold) to unlock permanent upgrades (TBD).
+
+**Win Condition:** Successful extraction.
+**Loss Condition:** Death (Loss of collected Gold).
 
 ---
 
 ## 2. Gameplay Mechanics
 
-### 2.1 Player Character
+### 2.1 Extraction System
+The core tension of the game comes from timed opportunities.
+*   **Extraction Zones:** Green pulsing "Exit" zones spawn at specific time intervals (e.g., 2:00, 3:30, 5:00).
+*   **Timed Windows:** Extraction signals are unstable. Each zone is active for only **45 seconds** before despawning.
+*   **Spawn Logic:** Signals originate from unstable sectors **far from the player's current position**, forcing traversal across the map.
+*   **Extraction Logic:** Standing in the zone and pressing the interaction key (`E`) triggers extraction.
+*   **Risk/Reward:** Staying for later windows increases difficulty (enemy density) but offers higher potential Gold rewards.
+
+### 2.2 Player Character
 -   **Movement**: 8-directional movement (WASD/Arrows).
--   **Auto-Attack**: Weapons fire automatically provided they are off cooldown.
+-   **Auto-Attack**: Weapons fire automatically.
 -   **Stats**:
     -   *Max Health*: 100 base.
     -   *Speed*: 140 pixels/sec base.
     -   *Pickup Radius*: Magnetic range for XP gems.
     -   *Invulnerability*: 1.0s buffer after taking damage.
 
-### 2.2 Combat System
-The game utilizes an auto-battler system where the player focuses solely on positioning.
+### 2.3 Combat System (Auto-Battler)
 -   **Collision**: Touching enemies deals damage to the player.
--   **Damage Numbers**: Visual feedback for damage dealt to enemies.
+-   **Damage Numbers**: Visual feedback for damage dealt.
 -   **Hit Effects**: Enemies flash and pulse when hit.
 
-### 2.3 Progression (Leveling)
--   Enemies drop **XP Gems** (`$` / `◆`) on death.
--   Collecting XP fills the experience bar.
--   **Level Up**: Pauses the game and presents 3 random upgrade choices.
--   **Choices**: Can be a new weapon, a weapon upgrade (damage/count/speed), or a passive stat boost.
+### 2.4 Progression (In-Run)
+-   **XP Gems**: Enemies drop data on death. Collection boosts the XP bar.
+-   **Level Up**: 3 random choices (Weapon or Passive) upon filling the bar.
+-   **Build Crafting**: Combine weapons and passives for synergy during a single run.
 
 ---
 
-## 3. Arsenal (Weapons)
+## 3. User Interface
 
-### 3.1 Magic Wand
+### 3.1 HUD (Heads-Up Display)
+-   **Top Left**: Performance stats (FPS) & Debug info (if enabled).
+-   **Top Center**: Health Bar (Green/Red) & Experience Bar (Cyan).
+-   **Bottom Left**: Kill Count & Survival Time.
+-   **Extraction Alerts**:
+    -   **Timer**: Countdown timer (45s) when an extraction window is active.
+    -   **Coordinates**: On-screen display (X, Y) pointing to the distant extraction signal.
+    -   **Notification**: "SIGNAL ACQUIRED" message on spawn.
+-   **Right Side**: "Stats Panel" showing current attributes (SPD, DMG, CD).
+-   **Inventory Slots**:
+    -   Visual indicators for 6 Weapon slots and 6 Passive slots.
+    -   Displays specific **Symbol** and **Color** for each equipped item.
+    -   Empty slots shown as gray outlines.
+
+### 3.2 Debug Menu
+-   **Access**: Click "DEBUG" button in bottom-left corner.
+-   **Tabs**:
+    -   *Weapons*: Add or Level Up any weapon instantly.
+    -   *Passives*: Add or Level Up any passive item.
+    -   *Cheats*: God Mode, Inject XP, Instant Level Up, Kill All Enemies, Full Heal.
+-   **Features**: Scrollable lists, real-time stat tracking.
+
+### 3.3 Game Screens
+-   **Title Screen**: Start prompt and controls.
+-   **Pause Overlay**: Frozen game state with Resume/Restart options.
+-   **Rewards Screen**: "Mission Report" styling showing Gold earned, Kills, and Time.
+-   **Storage**: View accumulated Gold and lifetime stats (Kills, Playtime).
+-   **Wipe Save**: Reset all progress.
+
+---
+
+## 4. Meta-Game & Economy
+
+### 4.1 Hub (Command Center)
+A safe menu screen between runs.
+-   **Start Mission**: Begin a new run.
+-   **Loadout**: Select starting equipment (Weapon + Passive) for the next run.
+-   **Storage**: View accumulated Gold and lifetime stats (Kills, Playtime).
+-   **Wipe Save**: Reset all progress.
+
+### 4.2 Economy (Gold)
+-   **Earning**: Gold is awarded ONLY upon successful extraction.
+-   **Calculation**: Based on time thresholds (e.g., Early Exit = Low Payout, Late Exit = High Payout).
+-   **Spending**: (Future Feature) Purchase permanent upgrades or unlock new loadout options.
+
+---
+
+## 5. Arsenal (Weapons)
+
+### 4.1 Magic Wand
 -   **Type**: Projectile
--   **Behavior**: Fires magic projectiles at the nearest enemy (multi-target at higher levels).
+-   **Behavior**: Fires magic projectiles at the nearest enemy.
 -   **Visual**: Symbol `¡` (Blue `#8888ff`).
 
-### 3.2 Knife
+### 4.2 Knife
 -   **Type**: Directional Projectile
--   **Behavior**: Fires fast customisable projectiles in movement direction (spread pattern at higher levels).
+-   **Behavior**: Fires fast projectiles in movement direction.
 -   **Visual**: Symbol `†` (Silver `#cccccc`).
 
-### 3.3 Garlic
+### 4.3 Garlic
 -   **Type**: Area of Effect (AoE)
 -   **Behavior**: Creates a damaging field around the player.
 -   **Visual**: Symbol `○` (Yellow `#ffff00`).
 
-### 3.4 Orbiting Shield
+### 4.4 Orbiting Shield
 -   **Type**: Orbit
 -   **Behavior**: Deploys defensive drones that circle the player.
 -   **Visual**: Symbol `♦` (Cyan `#00ffff`).
 
-### 3.5 Scatter Shot
+### 4.5 Scatter Shot
 -   **Type**: Spread Projectile
 -   **Behavior**: Fires a shotgun-like blast of projectiles.
 -   **Visual**: Symbol `░` (Red `#ff8888`).
 
-### 3.6 Magic Missile (Seeker)
+### 4.6 Magic Missile (Seeker)
 -   **Type**: Tracking Projectile
 -   **Behavior**: Fires missiles that actively steer toward targets.
 -   **Visual**: Symbol `»` (Magenta `#ff00ff`).
 
-### 3.7 Proximity Mine
+### 4.7 Proximity Mine
 -   **Type**: Deployable
--   **Behavior**: Stationary mines that explode when enemies approach.
+-   **Behavior**: Stationary mines that explode on contact.
 -   **Visual**: Symbol `x` (Green `#00ff00`).
 
-### 3.8 Passive Items
-Passive items provide stat boosts that persist for the entire run. All have associated symbols and colors displayed in the HUD.
+---
+
+### 4.8 Passive Items
+Passive items provide stat boosts that persist for the entire run.
 -   **Damage Amp** (`+`): Increases damage multiplier.
 -   **Wings** (`^`): Increases movement speed.
 -   **Magnet** (`U`): Increases pickup radius.
@@ -90,16 +151,16 @@ Passive items provide stat boosts that persist for the entire run. All have asso
 -   **Cooldown** (`C`): Reduces weapon cooldowns.
 -   **Armor** (`#`): Reduces damage taken.
 -   **Greed** (`$`): Increases XP multiplier.
--   **Luck** (`%`): Increases luck chance.
--   **Regeneration** (`&`): Auto-repairs health.
+-   **Luck** (`%`): Increases luck chance (affects critical hits, drops).
+-   **Regeneration** (`&`): Auto-repairs health over time.
 -   **Area** (`O`): Increases weapon AoE size.
 -   **Duration** (`T`): Increases weapon effect duration.
 
 ---
 
-## 4. Bestiary (Enemies)
+## 6. Bestiary (Enemies)
 
-Enemies spawn endlessly at the edges of the screen and track the player.
+Enemies spawn endlessly at the edges of the screen.
 
 | Type | Name | Symbol | Color | Behavior |
 |------|------|--------|-------|----------|
@@ -111,107 +172,22 @@ Enemies spawn endlessly at the edges of the screen and track the player.
 
 ---
 
-## 5. Game Systems
-
-### 5.1 Juice & Feedback (Visuals)
--   **Particles**: ASCII particles explode from killed enemies.
--   **Screen Shake**: Impact feedback for heavy hits and player damage.
--   **Flash**: Enemies flash white when damaged.
--   **Scale Pulse**: Enemies expand slightly when hit.
--   **Floating Text**: Damage numbers pop up and float away.
-
-### 5.2 World & Camera
--   **Map**: 4000x4000 pixel virtual scrolling world.
--   **Camera**: Smoothly follows the player with a lerp factor.
--   **Grid**: Background grid helps convey movement/speed.
-
-### 5.3 Technical
--   **Renderer**: Custom `ASCIIRenderer` simulating a terminal interface on Canvas.
--   **Spatial Hashing**: Optimizes collision detection.
--   **Object Pooling**: Reuses projectile and particle objects.
--   **Unique IDs**: All entities have unique IDs for tracking (e.g., piercing logic).
-
-### 5.4 Stat System
-Stats are calculated dynamically each frame to support upgrades and temporary buffs.
--   **Stacking Logic**:
-    -   *Multipliers*: Additive stacking (e.g., Base × (1 + 0.1 + 0.1) = 1.2x).
-    -   *Flat Bonuses*: Simple addition (e.g., Base + 20 + 20).
--   **Key Stats**:
-    -   `Speed`: Base 140 × Multiplier.
-    -   `Damage`: Weapon Base × Level Multiplier × Global Damage Multiplier.
-    -   `Cooldown`: Weapon Base × (1 - Cooldown Reduction).
-    -   `Area`: Weapon Range/Size × Area Multiplier.
-### 5.5 Spawning System
-Enemies spawn dynamically based on camera position and game time.
--   **Placement**: Enemies spawn just outside the visible camera view (viewport edge + 50px margin).
--   **Rate Scaling**:
-    -   Spawn rate increases linearly over time: `Rate = Base * (1 + Time / 60s)`.
-    -   Starts at 1 enemy/sec, caps at 10 enemies/sec.
-    -   Global hard cap of 500 active enemies.
--   **Selection Logic**: Weighted random selection (no time-gating in current build).
-    -   *Common*: Basic (Weight 100), Fast (Weight 40).
-    -   *Uncommon*: Ranger (Weight 30), Tank (Weight 20), Swarm (Weight 15).
-
----
-
-## 6. User Interface (UI)
-
-### 6.1 HUD (Heads-Up Display)
--   **Top Left**: Performance stats (FPS) & Debug info (if enabled).
--   **Top Center**: Health Bar (Green/Red) & Experience Bar (Cyan).
--   **Bottom Left**: Kill Count & Survival Time.
--   **Right Side**: "Stats Panel" showing current attributes (SPD, DMG, CD).
--   **Inventory Slots**:
-    -   Visual indicators for 6 Weapon slots and 6 Passive slots.
-    -   Displays specific **Symbol** and **Color** for each equipped item.
-    -   Empty slots shown as gray outlines.
-
-### 6.2 Debug Menu
--   **Access**: Click "DEBUG" button in bottom-left corner.
--   **Tabs**:
-    -   *Weapons*: Add or Level Up any weapon instantly.
-    -   *Passives*: Add or Level Up any passive item.
-    -   *Cheats*: God Mode, Inject XP, Instant Level Up, Kill All Enemies, Full Heal.
--   **Features**: Scrollable lists, real-time stat tracking.
-
-### 6.3 Game Screens
--   **Title Screen**:
-    -   Displays "BREACH PROTOCOL" logo with glow effect.
-    -   Prompt: "PRESS SPACE TO START".
-    -   Controls hint overlay.
-    -   Debug menu accessible for pre-game setup.
--   **Pause Overlay**:
-    -   Semi-transparent black overlay.
-    -   Displays current Level and Time.
-    -   Options to RESUME (`ESC`) or RESTART (`R`).
-    -   Renders the frozen game state behind the UI.
--   **Game Over**:
-    -   Red-tinted death screen.
-    -   Final Stats Box: Level Reached, Total Time, Enemies Killed.
-    -   Options: RESTART (`R`) or RETURN TO TITLE (`SPACE`).
-
----
-
 ## 7. Technical Architecture
 
-### 7.1 Codebase Structure
-The project follows a modular ES6 architecture with a clear separation of concerns, avoiding monolithic classes.
--   **`core/`**: Essential engine components (`GameLoop`, `Camera`, `GameState`).
--   **`systems/`**: Managers that handle specific logic domains (`WeaponSystem`, `SpawnSystem`, `CollisionSystem`).
--   **`entities/`**: Game objects with state and update methods (`Player`, `Enemy`, `Projectile`).
--   **`config/`**: Data-driven design files separating values from logic.
--   **`renderers/`**: Visual layer decoupled from game logic (`ASCIIRenderer`).
+### 6.1 State Management (`Game.js` State Machine)
+-   **PROFILE_CREATION**: First-time setup.
+-   **HUB**: Main menu / Meta-game loop.
+-   **LOADOUT**: Pre-run preparation.
+-   **PLAYING**: Core gameplay loop.
+-   **PAUSED**: Suspended state.
+-   **REWARDS**: End-of-run summary (Win/Loss).
+-   **GAME_OVER**: (Legacy/Merged with Rewards).
 
-### 7.2 Game Loop & State
--   **Loop**: `GameLoop.js` uses `requestAnimationFrame` to target 60 FPS.
--   **Delta Time**: All movement and timers are multiplied by `deltaTime` (seconds) to ensure frame-rate independence.
--   **State Management**: `GameState` (enumerated in `core/GameState.js`) controls the flow (Title -> Playing -> Paused -> GameOver).
--   **Pause System**: The loop continues running when paused to handle UI rendering, but game logic updates are skipped.
+### 6.2 Configuration
+Gameplay values are centralized in `js/config/` for tuning without code changes.
+-   `GameConfig.js`: Global settings.
+-   `WeaponConfig.js`: Weapon stats.
+-   `EnemyConfig.js`: Enemy behaviors.
 
-### 7.3 Configuration System
-Use of "Magic Numbers" is strictly avoided. All gameplay values are centralized in `js/config/`:
--   **`GameConfig.js`**: Application constants (Canvas size, Colors, FPS), Base stats (Player speed), and ASCII mappings.
--   **`WeaponConfig.js`**: Definitions for all 7 weapon types (stats, behaviors, visuals).
--   **`EnemyConfig.js`**: Definitions for all 5 enemy types (AI behavior, spawn weights, stats).
--   **`UpgradeConfig.js`**: Logic for generating level-up choices.
--   **`PassiveConfig.js`**: Definitions for all passive item stat boosters.
+### 6.3 Input Handling
+Supports both Keyboard (WASD/Arrows + Space/E) and Mouse (Menu interaction) controls.

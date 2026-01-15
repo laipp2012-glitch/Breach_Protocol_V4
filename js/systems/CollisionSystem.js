@@ -17,7 +17,7 @@ export class CollisionSystem {
      */
     constructor() {
         /** @type {number} Minimum push distance to separate overlapping enemies */
-        this.enemySeparationStrength = 0.5;
+        this.enemySeparationStrength = 1.0;  // Increased from 0.5
 
         /** @type {SpatialHash} Spatial hash for enemies */
         this.enemyGrid = new SpatialHash(100);

@@ -26,6 +26,8 @@ import { GameOverScreen } from '../ui/GameOverScreen.js';
 import { ProfileCreationScreen } from '../ui/ProfileCreationScreen.js';
 import { RewardsScreen } from '../ui/RewardsScreen.js';
 import { HubScreen } from '../ui/HubScreen.js';
+import { LoadoutScreen } from '../ui/LoadoutScreen.js';
+import { LoadingScreen } from '../ui/LoadingScreen.js';
 import { DebugUI } from '../ui/DebugUI.js';
 import { playerProfile } from '../systems/PlayerProfile.js';
 import { GAME_CONFIG } from '../config/GameConfig.js';
@@ -67,6 +69,7 @@ export class Game {
         // Initialize systems
         /** @type {InputSystem} */
         this.inputSystem = new InputSystem();
+        this.inputSystem.setCanvas(this.canvas);
 
         // Initialize renderer (ASCII for MVP)
         /** @type {ASCIIRenderer} */
@@ -134,6 +137,12 @@ export class Game {
         /** @type {number} Total enemies killed */
         this.killCount = 0;
 
+        /** @type {number} Credits collected during this run */
+        this.runCredits = 0;
+
+        /** @type {number} Accumulator for credit timing */
+        this.creditAccumulator = 0;
+
         // UI Screens
         /** @type {TitleScreen} */
         this.titleScreen = new TitleScreen();
@@ -147,11 +156,20 @@ export class Game {
         /** @type {ProfileCreationScreen} */
         this.profileCreationScreen = new ProfileCreationScreen();
         this.profileCreationScreen.onProfileCreated = () => {
-            this.currentState = GAME_STATE.HUB; // Go to hub after creating profile
+            this.inputSystem.clearKeys();
+            // Go to loading screen instead of directly to hub
+            this.loadingScreen.start('INITIALIZING SYSTEMS...', 1.0);
+            this.loadingScreen.onComplete = () => {
+                this.hubScreen.reset();
+                this.currentState = GAME_STATE.HUB;
+            };
+            this.currentState = GAME_STATE.LOADING;
         };
 
         // Set up title screen wipe callback
+        // Set up title screen wipe callback
         this.titleScreen.onProfileWiped = () => {
+            this.profileCreationScreen.reset();
             this.currentState = GAME_STATE.PROFILE_CREATION;
         };
 
@@ -160,6 +178,16 @@ export class Game {
 
         /** @type {HubScreen} */
         this.hubScreen = new HubScreen();
+        this.hubScreen.onProfileWiped = () => {
+            this.profileCreationScreen.reset();
+            this.currentState = GAME_STATE.PROFILE_CREATION;
+        };
+
+        /** @type {LoadoutScreen} */
+        this.loadoutScreen = new LoadoutScreen();
+
+        /** @type {LoadingScreen} */
+        this.loadingScreen = new LoadingScreen();
 
         /** @type {DebugUI} */
         this.debugUI = new DebugUI(this.canvas);
@@ -196,6 +224,11 @@ export class Game {
                 this.profileCreationScreen.render(this.ctx, this.canvas.width, this.canvas.height);
                 return;
 
+            case GAME_STATE.LOADING:
+                this.loadingScreen.update(deltaTime);
+                this.loadingScreen.render(this.ctx, this.canvas.width, this.canvas.height);
+                return;
+
             case GAME_STATE.HUB:
                 this.hubScreen.update(deltaTime);
                 // Handle navigation keys
@@ -204,11 +237,48 @@ export class Game {
                         this.inputSystem.pressedKeys.delete(key);
                         const action = this.hubScreen.handleKey(key);
                         if (action === 'start_run') {
-                            this.startGame();
+                            this.currentState = GAME_STATE.LOADOUT;
+                            this.loadoutScreen.reset();
                         }
                     }
                 }
+                // Handle mouse click
+                if (this.inputSystem.isMouseClicked()) {
+                    const mousePos = this.inputSystem.getMousePosition();
+                    const action = this.hubScreen.handleClick(mousePos.x, mousePos.y);
+                    if (action === 'start_run') {
+                        this.currentState = GAME_STATE.LOADOUT;
+                        this.loadoutScreen.reset();
+                    }
+                }
                 this.hubScreen.render(this.ctx, this.canvas.width, this.canvas.height);
+                return;
+
+            case GAME_STATE.LOADOUT:
+                this.loadoutScreen.update(deltaTime);
+                // Handle loadout keys
+                for (const key of ['Tab', 'KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter', 'Escape']) {
+                    if (this.inputSystem.isKeyPressed(key)) {
+                        this.inputSystem.pressedKeys.delete(key);
+                        const result = this.loadoutScreen.handleKey(key);
+                        if (result === 'cancel') {
+                            this.currentState = GAME_STATE.HUB;
+                        } else if (result && result.weaponId && result.passiveId) {
+                            this.startGameWithLoadout(result.weaponId, result.passiveId);
+                        }
+                    }
+                }
+                // Handle mouse click
+                if (this.inputSystem.isMouseClicked()) {
+                    const mousePos = this.inputSystem.getMousePosition();
+                    const result = this.loadoutScreen.handleClick(mousePos.x, mousePos.y);
+                    if (result === 'cancel') {
+                        this.currentState = GAME_STATE.HUB;
+                    } else if (result && result.weaponId && result.passiveId) {
+                        this.startGameWithLoadout(result.weaponId, result.passiveId);
+                    }
+                }
+                this.loadoutScreen.render(this.ctx, this.canvas.width, this.canvas.height);
                 return;
 
             case GAME_STATE.TITLE:
@@ -328,6 +398,13 @@ export class Game {
         // Track game time
         this.gameTime += deltaTime;
 
+        // Accumulate credits (1 per second)
+        this.creditAccumulator += deltaTime;
+        while (this.creditAccumulator >= 1.0) {
+            this.creditAccumulator -= 1.0;
+            this.runCredits += GAME_CONFIG.REWARDS.CREDITS_PER_SECOND;
+        }
+
         // Skip game updates during level-up (pause effect)
         if (this.experienceSystem.isLevelingUp) {
             this.renderSystem.render(this.ctx, this.camera.getPosition(), this.gameState);
@@ -353,7 +430,7 @@ export class Game {
         this.camera.update(this.player.position, deltaTime);
 
         // 4. Spawn enemies (at camera edges)
-        const newEnemies = this.spawnSystem.update(deltaTime, this.gameState.enemies, this.camera);
+        const newEnemies = this.spawnSystem.update(deltaTime, this.gameState.enemies, this.camera, this.player);
         this.gameState.enemies.push(...newEnemies);
 
         // 4. Update enemies (pass gameState for ranger projectile firing)
@@ -590,7 +667,8 @@ export class Game {
                 extracted: false,
                 timeSurvived: this.gameTime,
                 level: this.player.level,
-                kills: this.killCount
+                kills: this.killCount,
+                creditsCollected: this.runCredits
             };
             this.rewardsScreen.show(runData);
             this.currentState = GAME_STATE.REWARDS;
@@ -610,11 +688,27 @@ export class Game {
                 extractionTime: this.gameTime,
                 timeSurvived: this.gameTime,
                 level: this.player.level,
-                kills: this.killCount
+                kills: this.killCount,
+                creditsCollected: this.runCredits
             };
             this.rewardsScreen.show(runData);
             this.currentState = GAME_STATE.REWARDS;
             console.log('Player extracted - showing rewards');
+        }
+
+        // 10c. Trigger extraction wave when extraction point spawns
+        if (extractionResult.pointSpawned) {
+            const waveConfig = this.spawnSystem.getExtractionWaveConfig();
+            if (waveConfig.ENABLED) {
+                this.spawnSystem.spawnExtractionWave(
+                    this.gameState.enemies,
+                    this.camera.getPosition(),
+                    this.canvas.width,
+                    this.canvas.height,
+                    this.gameTime
+                );
+                console.log(`Extraction wave spawned: ${waveConfig.ENEMY_COUNT} enemies from ${waveConfig.DIRECTIONS} directions`);
+            }
         }
 
         // 11. Render based on current state
@@ -697,27 +791,61 @@ export class Game {
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
 
-        // FPS and debug info (top-left)
+        // ===== MAIN HUD (top-left, always visible) =====
+        // Time display
+        this.ctx.fillStyle = '#00ff00';
+        this.ctx.fillText(`TIME: ${this.spawnSystem.getFormattedTime()}`, 10, 10);
+
+        // Player position
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(
+            `POS: ${Math.floor(this.player.position.x)}, ${Math.floor(this.player.position.y)}`,
+            10, 26
+        );
+
+        // Credits display
+        this.ctx.fillStyle = '#ffcc00';
+        this.ctx.fillText(`CREDITS: ${this.runCredits}`, 10, 42);
+
+        // Extraction coordinates (if active)
+        if (this.extractionSystem.extractionPoints.length > 0) {
+            const point = this.extractionSystem.extractionPoints.find(p => p.alive);
+            if (point) {
+                const timeLeft = Math.ceil(point.timeRemaining);
+                const timerColor = timeLeft <= 10 ? '#ff3333' : (timeLeft <= 20 ? '#ffaa00' : '#00ff00');
+
+                this.ctx.fillStyle = '#00ff00';
+                this.ctx.fillText('▶ EXTRACTION:', 10, 62);
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillText(
+                    `  ${Math.floor(point.position.x)}, ${Math.floor(point.position.y)}`,
+                    10, 78
+                );
+                this.ctx.fillStyle = timerColor;
+                this.ctx.fillText(`  TIME LEFT: ${timeLeft}s`, 10, 94);
+            }
+        }
+
+        // God mode indicator
+        if (GAME_CONFIG.DEBUG.GOD_MODE) {
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.fillText('GOD MODE', 10, 114);
+        }
+
+        // ===== DEBUG STATS (bottom-right) =====
         if (GAME_CONFIG.DEBUG.SHOW_FPS) {
             const fps = this.gameLoop.getFPS();
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.fillText(`FPS: ${fps}`, 10, 10);
-            this.ctx.fillText(`Enemies: ${this.gameState.enemies.length}`, 10, 26);
-            this.ctx.fillText(`Projectiles: ${this.gameState.projectiles.length}`, 10, 42);
-            this.ctx.fillText(`Time: ${this.spawnSystem.getFormattedTime()}`, 10, 58);
+            const debugX = this.canvas.width - 130;
+            const debugY = this.canvas.height - 55;
 
-            // Show god mode indicator
-            if (GAME_CONFIG.DEBUG.GOD_MODE) {
-                this.ctx.fillStyle = '#ffff00';
-                this.ctx.fillText('GOD MODE', 10, 74);
-            }
-
-            // Show player position in world
-            this.ctx.fillStyle = '#888888';
-            this.ctx.fillText(
-                `Pos: ${Math.floor(this.player.position.x)}, ${Math.floor(this.player.position.y)}`,
-                10, 90
-            );
+            this.ctx.fillStyle = '#666666';
+            this.ctx.font = '11px monospace';
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText(`FPS: ${fps}`, this.canvas.width - 10, debugY);
+            this.ctx.fillText(`Enemies: ${this.gameState.enemies.length}`, this.canvas.width - 10, debugY + 14);
+            this.ctx.fillText(`Projectiles: ${this.gameState.projectiles.length}`, this.canvas.width - 10, debugY + 28);
+            this.ctx.textAlign = 'left';
+            this.ctx.font = GAME_CONFIG.FONTS.HUD;
         }
 
         // Health bar (top-center)
@@ -1057,6 +1185,8 @@ export class Game {
         // Reset game metrics
         this.gameTime = 0;
         this.killCount = 0;
+        this.runCredits = 0;
+        this.creditAccumulator = 0;
 
         // Return to title screen
         this.currentState = GAME_STATE.TITLE;
@@ -1092,6 +1222,66 @@ export class Game {
         // Reset extraction system for new run
         this.extractionSystem.reset();
         console.log('Game started!');
+    }
+
+    /**
+     * Starts the game with a chosen loadout
+     * @param {string} weaponId - Starting weapon ID
+     * @param {string} passiveId - Starting passive ID
+     */
+    startGameWithLoadout(weaponId, passiveId) {
+        // Reset player
+        this.player.reset(
+            GAME_CONFIG.WORLD.WIDTH / 2,
+            GAME_CONFIG.WORLD.HEIGHT / 2
+        );
+
+        // Clear player's weapons and passives
+        this.player.weapons = [];
+        this.player.passiveItems = [];
+
+        // Add chosen weapon
+        const weapon = createWeapon(weaponId);
+        if (weapon) {
+            this.player.weapons.push(weapon);
+        }
+
+        // Add chosen passive
+        this.player.addPassiveItem(passiveId);
+
+        // Clear entities
+        this.gameState.enemies = [];
+        this.gameState.projectiles = [];
+        this.gameState.pickups = [];
+        this.gameState.particles = [];
+        this.gameState.damageNumbers = [];
+        this.gameState.orbitDrones = [];
+        this.gameState.activeMines = [];
+        this.gameState.enemyProjectiles = [];
+
+        // Reset systems
+        this.spawnSystem.reset();
+        this.experienceSystem.isLevelingUp = false;
+        this.effectSystem.clear();
+        this.particleSystem.clear();
+        this.weaponSystem.orbitDrones = [];
+        this.weaponSystem.activeMines = [];
+        this.weaponSystem.lastDroneCount = 0;
+        this.weaponSystem.lastDroneLevel = 0;
+        this.extractionSystem.reset();
+
+        // Reset camera
+        this.camera.centerOn(this.player.position);
+
+        // Reset game metrics
+        this.gameTime = 0;
+        this.killCount = 0;
+        this.runCredits = 0;
+        this.creditAccumulator = 0;
+
+        // Start playing
+        this.currentState = GAME_STATE.PLAYING;
+        console.log(`Run started with ${weaponId} + ${passiveId}`);
     }
 
     /**

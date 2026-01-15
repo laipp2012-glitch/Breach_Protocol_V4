@@ -120,6 +120,13 @@ export class Enemy {
 
         // Add slight speed variation for visual interest
         this.speed *= 0.9 + Math.random() * 0.2; // ±10% speed variation
+
+        // Movement targeting (prevents blob convergence)
+        /** @type {Object|null} Persistent offset from player for this enemy */
+        this.targetOffset = null;
+
+        /** @type {string|null} Direction this enemy spawned from */
+        this.spawnDirection = null;
     }
 
     /**
@@ -199,12 +206,31 @@ export class Enemy {
                 }
             }
         } else {
-            // Standard enemy AI: chase player
-            if (distance > 1) {
-                const normalizedDir = direction.normalize();
+            // Standard enemy AI: chase player with spread
+
+            // Initialize target offset if not set
+            if (!this.targetOffset) {
+                this.targetOffset = this.calculateTargetOffset();
+            }
+
+            // Target a point NEAR player, not ON player
+            const targetX = playerPosition.x + this.targetOffset.x;
+            const targetY = playerPosition.y + this.targetOffset.y;
+
+            const targetPoint = new Vector2D(targetX, targetY);
+            const directionToTarget = targetPoint.subtract(this.position);
+            const distanceToTarget = directionToTarget.magnitude();
+
+            // Move toward offset target, stop when close
+            if (distanceToTarget > 10) {
+                const normalizedDir = directionToTarget.normalize();
                 this.velocity = normalizedDir.multiply(this.speed);
             } else {
-                this.velocity = new Vector2D(0, 0);
+                // Slow down when at target position
+                this.velocity = new Vector2D(
+                    this.velocity.x * 0.9,
+                    this.velocity.y * 0.9
+                );
             }
         }
 
@@ -377,6 +403,39 @@ export class Enemy {
      */
     getHealthPercent() {
         return this.health / this.maxHealth;
+    }
+
+    /**
+     * Calculates a persistent target offset for this enemy
+     * Uses spawn direction if available, otherwise random
+     * @returns {{x: number, y: number}} Target offset from player
+     */
+    calculateTargetOffset() {
+        const baseOffset = 20;  // Base distance from player center (reduced from 60 for collision)
+        const randomSpread = 30; // Additional random variance (reduced from 40)
+
+        // If we know spawn direction, bias offset toward that side
+        if (this.spawnDirection) {
+            const spreadX = (Math.random() - 0.5) * randomSpread;
+            const spreadY = (Math.random() - 0.5) * randomSpread;
+
+            switch (this.spawnDirection) {
+                case 'TOP':
+                    return { x: spreadX, y: -baseOffset + spreadY };
+                case 'BOTTOM':
+                    return { x: spreadX, y: baseOffset + spreadY };
+                case 'LEFT':
+                    return { x: -baseOffset + spreadX, y: spreadY };
+                case 'RIGHT':
+                    return { x: baseOffset + spreadX, y: spreadY };
+            }
+        }
+
+        // No spawn direction - use fully random offset
+        return {
+            x: (Math.random() - 0.5) * (baseOffset + randomSpread) * 2,
+            y: (Math.random() - 0.5) * (baseOffset + randomSpread) * 2
+        };
     }
 
     /**

@@ -37,6 +37,12 @@ export class ExtractionPoint {
 
         /** @type {boolean} Whether point is alive */
         this.alive = true;
+
+        /** @type {number} Lifetime duration in seconds */
+        this.lifetime = 45;
+
+        /** @type {number} Time remaining before despawn */
+        this.timeRemaining = this.lifetime;
     }
 
     /**
@@ -46,6 +52,13 @@ export class ExtractionPoint {
      * @returns {boolean} Whether player is in activation radius
      */
     update(deltaTime, playerPosition) {
+        // Update lifetime timer
+        this.timeRemaining -= deltaTime;
+        if (this.timeRemaining <= 0) {
+            this.alive = false;
+            return false;
+        }
+
         // Pulse animation
         this.pulseTimer += deltaTime;
         this.pulseScale = 1.0 + Math.sin(this.pulseTimer * 3) * 0.2;
@@ -100,6 +113,13 @@ export class ExtractionPoint {
         ctx.shadowBlur = 10;
         ctx.fillText('[EXIT]', x, y - 25);
         ctx.shadowBlur = 0;
+
+        // Timer display
+        const timeLeft = Math.ceil(this.timeRemaining);
+        const timerColor = timeLeft <= 10 ? '#ff3333' : (timeLeft <= 20 ? '#ffaa00' : '#00ff00');
+        ctx.font = 'bold 18px monospace';
+        ctx.fillStyle = timerColor;
+        ctx.fillText(`${timeLeft}s`, x, y + 60);
 
         // Prompt when active
         if (this.active) {

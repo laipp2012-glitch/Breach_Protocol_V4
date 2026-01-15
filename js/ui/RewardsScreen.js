@@ -5,6 +5,7 @@
  */
 
 import { playerProfile } from '../systems/PlayerProfile.js';
+import { GAME_CONFIG } from '../config/GameConfig.js';
 
 /**
  * End-of-run rewards and stats display
@@ -29,18 +30,29 @@ export class RewardsScreen {
      * @param {number} runData.timeSurvived - Total time survived
      * @param {number} runData.level - Player level reached
      * @param {number} runData.kills - Enemies killed
+     * @param {number} runData.creditsCollected - Credits accumulated during run
      */
     show(runData) {
         this.runData = { ...runData };
 
-        // Calculate and grant gold if extracted
+        // Calculate gold based on extraction vs death
+        const creditsCollected = runData.creditsCollected || 0;
+
         if (runData.extracted) {
-            const goldEarned = this.calculateGold(runData.extractionTime);
-            playerProfile.addGold(goldEarned);
-            this.runData.goldEarned = goldEarned;
+            // Full credits on extraction
+            this.runData.goldEarned = creditsCollected;
         } else {
-            this.runData.goldEarned = 0;
+            // Death penalty: only keep configured percentage
+            this.runData.goldEarned = Math.floor(creditsCollected * GAME_CONFIG.REWARDS.DEATH_PENALTY);
         }
+
+        // Grant the gold
+        if (this.runData.goldEarned > 0) {
+            playerProfile.addGold(this.runData.goldEarned);
+        }
+
+        // Store original credits for display
+        this.runData.creditsCollected = creditsCollected;
 
         // Record run stats
         playerProfile.recordRun(

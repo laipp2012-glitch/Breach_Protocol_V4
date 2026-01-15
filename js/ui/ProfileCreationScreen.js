@@ -40,6 +40,16 @@ export class ProfileCreationScreen {
     }
 
     /**
+     * Resets the screen state
+     */
+    reset() {
+        this.inputText = '';
+        this.showWipeConfirm = false;
+        this.cursorTimer = 0;
+        this.showCursor = true;
+    }
+
+    /**
      * Bind keyboard input
      */
     bindKeys() {

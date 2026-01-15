@@ -13,8 +13,14 @@ export const GAME_STATE = {
     /** Profile creation - first time setup */
     PROFILE_CREATION: 'profile_creation',
 
+    /** Loading transition screen */
+    LOADING: 'loading',
+
     /** Hub menu - central navigation */
     HUB: 'hub',
+
+    /** Loadout selection - pre-run equipment choice */
+    LOADOUT: 'loadout',
 
     /** Title screen - waiting for player to start */
     TITLE: 'title',

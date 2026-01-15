@@ -7,7 +7,7 @@
 
 import { Enemy } from '../entities/Enemy.js';
 import { getRandomEnemyType, ENEMY_TYPES } from '../config/EnemyConfig.js';
-import { GAME_CONFIG } from '../config/GameConfig.js';
+import { SPAWN_CONFIG, getWaveParams, getAvailableEnemies } from '../config/SpawnConfig.js';
 
 /**
  * Spawn edge enumeration
@@ -37,10 +37,10 @@ export class SpawnSystem {
         this.viewportHeight = viewportHeight;
 
         /** @type {number} Spawn margin outside viewport */
-        this.spawnMargin = GAME_CONFIG.SPAWN.MARGIN;
+        this.spawnMargin = SPAWN_CONFIG.GENERAL.SPAWN_MARGIN;
 
         /** @type {number} Maximum number of enemies */
-        this.maxEnemies = GAME_CONFIG.SPAWN.MAX_ENEMIES;
+        this.maxEnemies = SPAWN_CONFIG.GENERAL.MAX_ENEMIES;
 
         /** @type {number} Total game time */
         this.gameTime = 0;
@@ -65,9 +65,10 @@ export class SpawnSystem {
      * @param {number} deltaTime - Time since last frame in seconds
      * @param {Array<Enemy>} enemies - Current enemy array
      * @param {Object} camera - Camera object with x, y position
+     * @param {Object} player - Player object for directional spawning (optional)
      * @returns {Array<Enemy>} New enemies spawned this frame
      */
-    update(deltaTime, enemies, camera = null) {
+    update(deltaTime, enemies, camera = null, player = null) {
         if (!this.active) {
             return [];
         }
@@ -111,7 +112,8 @@ export class SpawnSystem {
             if (actualWaveSize > 0) {
                 const directions = this.selectWaveDirections(
                     waveParams.minDirections,
-                    waveParams.maxDirections
+                    waveParams.maxDirections,
+                    player
                 );
 
                 const waveEnemies = this.spawnWave(actualWaveSize, directions);
@@ -123,14 +125,14 @@ export class SpawnSystem {
 
         // --- CONTINUOUS SPAWNING ---
         this.continuousSpawnTimer += deltaTime;
-        const continuousInterval = GAME_CONFIG.SPAWN.CONTINUOUS_INTERVAL;
+        const continuousInterval = SPAWN_CONFIG.GENERAL.CONTINUOUS_INTERVAL;
 
         if (this.continuousSpawnTimer >= continuousInterval) {
             this.continuousSpawnTimer = 0;
 
             // Spawn 1 enemy if space available
             if (enemies.length + newEnemies.length < this.maxEnemies) {
-                const enemy = this.spawnEnemy(); // Uses existing random logic
+                const enemy = this.spawnEnemy(player); // Pass player for directional spawning
                 if (enemy) {
                     newEnemies.push(enemy);
                 }
@@ -146,34 +148,44 @@ export class SpawnSystem {
      * @returns {{interval: number, size: number, minDirections: number, maxDirections: number}}
      */
     getWaveParameters(gameTime) {
-        if (gameTime < 150) { // 0-2:30 (Early)
-            return {
-                interval: 10,  // Faster waves (was 15)
-                size: 15,      // More enemies (was 10)
-                minDirections: 2,
-                maxDirections: 2
-            };
-        } else { // 2:30+ (Late)
-            return {
-                interval: 8,   // Faster waves (was 12)
-                size: 20,      // More enemies (was 15)
-                minDirections: 3,
-                maxDirections: 3
-            };
-        }
+        return getWaveParams(gameTime);
     }
 
     /**
      * Selects random spawn directions
      * @param {number} min - Minimum number of directions
      * @param {number} max - Maximum number of directions
+     * @param {Object} player - Player object for directional bias (optional)
      * @returns {Array<number>} Array of SPAWN_EDGE values
      */
-    selectWaveDirections(min, max) {
+    selectWaveDirections(min, max, player = null) {
         const count = Math.floor(Math.random() * (max - min + 1)) + min;
-        const available = [SPAWN_EDGE.TOP, SPAWN_EDGE.RIGHT, SPAWN_EDGE.BOTTOM, SPAWN_EDGE.LEFT];
+        let available = [SPAWN_EDGE.TOP, SPAWN_EDGE.RIGHT, SPAWN_EDGE.BOTTOM, SPAWN_EDGE.LEFT];
 
-        // Shuffle and take 'count' elements
+        // If player is moving, bias towards movement direction
+        if (player) {
+            const movementEdge = this.getMovementDirectionEdge(player);
+
+            // 70% chance to FORCE the movement edge to be included
+            if (Math.random() < 0.7) {
+                // Remove movementEdge from available
+                available = available.filter(e => e !== movementEdge);
+
+                // Shuffle remaining
+                for (let i = available.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [available[i], available[j]] = [available[j], available[i]];
+                }
+
+                // Add movementEdge at start to ensure it's picked
+                available.unshift(movementEdge);
+
+                // Return 'count' elements
+                return available.slice(0, count);
+            }
+        }
+
+        // Standard shuffle
         for (let i = available.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [available[i], available[j]] = [available[j], available[i]];
@@ -203,6 +215,10 @@ export class SpawnSystem {
                 const pos = this.getSpawnPositionForDirection(edge, i, count);
                 const enemyType = this.selectEnemyType();
                 const enemy = new Enemy(pos.x, pos.y, enemyType);
+
+                // Store spawn direction for movement spread
+                enemy.spawnDirection = this.getDirectionName(edge);
+
                 generatedEnemies.push(enemy);
             }
         });
@@ -263,17 +279,37 @@ export class SpawnSystem {
 
     /**
      * Spawns a single enemy at a random edge (Continuous Logic)
+     * @param {Object} player - Player object for directional spawning (optional)
      * @returns {Enemy} The spawned enemy
      */
-    spawnEnemy() {
-        // Choose a random edge
-        const edge = Math.floor(Math.random() * 4);
+    spawnEnemy(player = null) {
+        // Choose edge - 70% bias toward player's movement direction
+        let edge;
+        if (player && Math.random() < 0.7) {
+            // Directional spawn based on player velocity
+            edge = this.getMovementDirectionEdge(player);
+        } else {
+            // Random edge
+            const randomInt = Math.floor(Math.random() * 4); // 0, 1, 2, 3
+            switch (randomInt) {
+                case 0: edge = SPAWN_EDGE.TOP; break;
+                case 1: edge = SPAWN_EDGE.RIGHT; break;
+                case 2: edge = SPAWN_EDGE.BOTTOM; break;
+                case 3: edge = SPAWN_EDGE.LEFT; break;
+            }
+        }
+
         const { x, y } = this.getSpawnPosition(edge);
 
         // Get a random enemy type (Time-gated)
         const enemyType = this.selectEnemyType();
 
-        return new Enemy(x, y, enemyType);
+        const enemy = new Enemy(x, y, enemyType);
+
+        // Store spawn direction
+        enemy.spawnDirection = this.getDirectionName(edge);
+
+        return enemy;
     }
 
     /**
@@ -308,7 +344,16 @@ export class SpawnSystem {
                     y: camY + Math.random() * this.viewportHeight
                 };
             default:
-                return { x: camX - margin, y: camY - margin };
+                // Fallback to a random edge if an invalid edge is passed
+                const randomInt = Math.floor(Math.random() * 4);
+                let fallbackEdge;
+                switch (randomInt) {
+                    case 0: fallbackEdge = SPAWN_EDGE.TOP; break;
+                    case 1: fallbackEdge = SPAWN_EDGE.RIGHT; break;
+                    case 2: fallbackEdge = SPAWN_EDGE.BOTTOM; break;
+                    case 3: fallbackEdge = SPAWN_EDGE.LEFT; break;
+                }
+                return this.getSpawnPosition(fallbackEdge);
         }
     }
 
@@ -361,15 +406,7 @@ export class SpawnSystem {
      * @returns {Array<string>} Array of allowed enemy IDs
      */
     getAvailableEnemyTypes(gameTime) {
-        const types = ['basic']; // Always available
-
-        if (gameTime >= 90) types.push('fast');    // 1:30
-        if (gameTime >= 180) types.push('ranger'); // 3:00
-
-        // Tank and Swarm disabled
-
-        return types.filter(typeId => {
-            // Find config by ID since keys might not match ID directly (e.g. casing)
+        return getAvailableEnemies(gameTime).filter(typeId => {
             const enemyConfig = Object.values(ENEMY_TYPES).find(t => t.id === typeId);
             return enemyConfig && enemyConfig.enabled !== false;
         });
@@ -385,5 +422,96 @@ export class SpawnSystem {
 
         // Pass to weighted random selector
         return getRandomEnemyType(available);
+    }
+
+    /**
+     * Gets extraction wave configuration
+     * @returns {Object} Extraction wave config
+     */
+    getExtractionWaveConfig() {
+        return SPAWN_CONFIG.EXTRACTION_WAVE;
+    }
+
+    /**
+     * Spawns a massive wave when extraction point appears
+     * @param {Array} enemies - Current enemies array
+     * @param {Object} camera - Camera position
+     * @param {number} viewportWidth - Viewport width
+     * @param {number} viewportHeight - Viewport height
+     * @param {number} gameTime - Current game time
+     */
+    spawnExtractionWave(enemies, camera, viewportWidth, viewportHeight, gameTime) {
+        const config = SPAWN_CONFIG.EXTRACTION_WAVE;
+        if (!config.ENABLED) return;
+
+        // Temporarily update camera reference
+        const oldCameraX = this.cameraX;
+        const oldCameraY = this.cameraY;
+        this.cameraX = camera.x;
+        this.cameraY = camera.y;
+
+        // Get directions
+        const directions = this.selectWaveDirections(config.DIRECTIONS, config.DIRECTIONS);
+
+        // Spawn the wave
+        const spawnedEnemies = this.spawnWave(config.ENEMY_COUNT, directions);
+
+        // Add to enemies array
+        for (const enemy of spawnedEnemies) {
+            if (enemies.length < SPAWN_CONFIG.GENERAL.MAX_ENEMIES) {
+                enemies.push(enemy);
+            }
+        }
+
+        // Restore camera reference
+        this.cameraX = oldCameraX;
+        this.cameraY = oldCameraY;
+
+        console.log(`Extraction wave: ${spawnedEnemies.length} enemies spawned`);
+    }
+
+    /**
+     * Converts SPAWN_EDGE enum to direction name
+     * @param {number} edge - SPAWN_EDGE value
+     * @returns {string} Direction name
+     */
+    /**
+     * Determines which edge corresponds to player's movement direction
+     * @param {Object} player - Player object with velocity
+     * @returns {number} Edge index (SPAWN_EDGE value) for TOP, RIGHT, BOTTOM, LEFT
+     */
+    getMovementDirectionEdge(player) {
+        if (!player.velocity || (Math.abs(player.velocity.x) < 1 && Math.abs(player.velocity.y) < 1)) {
+            // If not moving or no velocity, return a random edge
+            const randomInt = Math.floor(Math.random() * 4);
+            switch (randomInt) {
+                case 0: return SPAWN_EDGE.TOP;
+                case 1: return SPAWN_EDGE.RIGHT;
+                case 2: return SPAWN_EDGE.BOTTOM;
+                case 3: return SPAWN_EDGE.LEFT;
+            }
+        }
+
+        const vx = player.velocity.x;
+        const vy = player.velocity.y;
+
+        // Determine dominant direction
+        if (Math.abs(vx) > Math.abs(vy)) {
+            // Moving horizontally
+            return vx > 0 ? SPAWN_EDGE.RIGHT : SPAWN_EDGE.LEFT;
+        } else {
+            // Moving vertically
+            return vy > 0 ? SPAWN_EDGE.BOTTOM : SPAWN_EDGE.TOP;
+        }
+    }
+
+    getDirectionName(edge) {
+        switch (edge) {
+            case SPAWN_EDGE.TOP: return 'TOP';
+            case SPAWN_EDGE.BOTTOM: return 'BOTTOM';
+            case SPAWN_EDGE.LEFT: return 'LEFT';
+            case SPAWN_EDGE.RIGHT: return 'RIGHT';
+            default: return null;
+        }
     }
 }

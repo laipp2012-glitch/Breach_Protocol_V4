@@ -31,15 +31,36 @@ export class InputSystem {
         /** @type {boolean} Whether the input system is active */
         this.active = true;
 
+        /** @type {{x: number, y: number}} Mouse position */
+        this.mousePosition = { x: 0, y: 0 };
+
+        /** @type {boolean} Mouse was clicked this frame */
+        this.mouseClicked = false;
+
+        /** @type {HTMLCanvasElement|null} Canvas for mouse position */
+        this.canvas = null;
+
         // Bind event handlers
         this._handleKeyDown = this._handleKeyDown.bind(this);
         this._handleKeyUp = this._handleKeyUp.bind(this);
         this._handleBlur = this._handleBlur.bind(this);
+        this._handleMouseMove = this._handleMouseMove.bind(this);
+        this._handleMouseClick = this._handleMouseClick.bind(this);
 
         // Add event listeners
         window.addEventListener('keydown', this._handleKeyDown);
         window.addEventListener('keyup', this._handleKeyUp);
         window.addEventListener('blur', this._handleBlur);
+        window.addEventListener('mousemove', this._handleMouseMove);
+        window.addEventListener('click', this._handleMouseClick);
+    }
+
+    /**
+     * Sets the canvas for mouse position calculations
+     * @param {HTMLCanvasElement} canvas
+     */
+    setCanvas(canvas) {
+        this.canvas = canvas;
     }
 
     /**
@@ -144,7 +165,8 @@ export class InputSystem {
             ...MOVEMENT_KEYS.RIGHT,
             'Space',
             'Escape',
-            'KeyE'
+            'KeyE',
+            'Tab'
         ];
 
         if (gameKeys.includes(event.code)) {
@@ -169,5 +191,51 @@ export class InputSystem {
      */
     _handleBlur() {
         this.pressedKeys.clear();
+    }
+
+    /**
+     * Handles mouse move events
+     * @param {MouseEvent} event
+     * @private
+     */
+    _handleMouseMove(event) {
+        if (this.canvas) {
+            const rect = this.canvas.getBoundingClientRect();
+            this.mousePosition.x = event.clientX - rect.left;
+            this.mousePosition.y = event.clientY - rect.top;
+        } else {
+            this.mousePosition.x = event.clientX;
+            this.mousePosition.y = event.clientY;
+        }
+    }
+
+    /**
+     * Handles mouse click events
+     * @param {MouseEvent} event
+     * @private
+     */
+    _handleMouseClick(event) {
+        this._handleMouseMove(event);
+        this.mouseClicked = true;
+    }
+
+    /**
+     * Gets current mouse position
+     * @returns {{x: number, y: number}}
+     */
+    getMousePosition() {
+        return this.mousePosition;
+    }
+
+    /**
+     * Checks if mouse was clicked this frame (consumes click)
+     * @returns {boolean}
+     */
+    isMouseClicked() {
+        if (this.mouseClicked) {
+            this.mouseClicked = false;
+            return true;
+        }
+        return false;
     }
 }

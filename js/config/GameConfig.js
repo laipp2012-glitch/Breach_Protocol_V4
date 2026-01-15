@@ -26,7 +26,7 @@ export const GAME_CONFIG = {
 
     // Player settings
     PLAYER: {
-        SPEED: 140,          // Pixels per second
+        SPEED: 100,          // Pixels per second
         RADIUS: 14,          // Collision radius
         MAX_HEALTH: 100,
         INVULNERABLE_DURATION: 1.0  // Seconds of invulnerability after damage
@@ -115,6 +115,12 @@ export const GAME_CONFIG = {
     GRID: {
         SIZE: 50,            // Grid cell size in pixels
         LINE_WIDTH: 1
+    },
+
+    // Rewards system settings
+    REWARDS: {
+        CREDITS_PER_SECOND: 1,      // Credits earned per second survived
+        DEATH_PENALTY: 0.15         // Fraction of credits kept on death (15%)
     },
 
     // Debug settings
